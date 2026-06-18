@@ -1,0 +1,10 @@
+- Kurse (kurse): kurstitel[string/text], kurzbeschreibung[string/textarea], detaillierte_beschreibung[string/textarea], kategorie[lookup/select], dauer_anzahl[number], dauer_einheit[lookup/select], zielgruppe[string/text], max_teilnehmer[number], status[lookup/select]
+- Trainer (trainer): vorname[string/text], nachname[string/text], email[string/email], trainer_typ[lookup/radio], fachgebiete[string/textarea]
+- Teilnehmer (teilnehmer): vorname[string/text], nachname[string/text], email[string/email], firma_abteilung[string/text], rolle[string/text], aktiv_status[lookup/radio]
+- Kurstermine (kurstermine): kurs[applookup/select], startdatum[date/datetimeminute], enddatum[date/datetimeminute], ort[string/text], online_link[string/url], anmeldefrist[date/date], trainer[applookup/select], max_teilnehmer_abweichend[number], status[lookup/select]
+  → kurs links to app_id 6a33ac97f71b811034a5f224
+  → trainer links to app_id 6a33ac9e6060014a70436880
+- Anmeldungen (anmeldungen): kurstermin[applookup/select], kurs[applookup/select], teilnehmer[applookup/select], anmeldedatum[date/datetimeminute], status[lookup/select], bemerkung[string/textarea]
+  → kurstermin links to app_id 6a33ac9f436c052d056df9f7
+  → kurs links to app_id 6a33ac97f71b811034a5f224
+  → teilnehmer links to app_id 6a33ac9f9cf5d458275318aa

@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "forms": [
+    {
+      "entity": "kurse",
+      "app_id": "6a33ac97f71b811034a5f224",
+      "path": "/rest/apps/6a33ac97f71b811034a5f224/records",
+      "allowed_fields": [
+        "kurstitel",
+        "kurzbeschreibung",
+        "detaillierte_beschreibung",
+        "kategorie",
+        "dauer_anzahl",
+        "dauer_einheit",
+        "zielgruppe",
+        "max_teilnehmer",
+        "status"
+      ],
+      "pow": true,
+      "pow_difficulty": 50000,
+      "title": "Kurse — Formular"
+    },
+    {
+      "entity": "trainer",
+      "app_id": "6a33ac9e6060014a70436880",
+      "path": "/rest/apps/6a33ac9e6060014a70436880/records",
+      "allowed_fields": [
+        "vorname",
+        "nachname",
+        "email",
+        "trainer_typ",
+        "fachgebiete"
+      ],
+      "pow": true,
+      "pow_difficulty": 50000,
+      "title": "Trainer — Formular"
+    },
+    {
+      "entity": "teilnehmer",
+      "app_id": "6a33ac9f9cf5d458275318aa",
+      "path": "/rest/apps/6a33ac9f9cf5d458275318aa/records",
+      "allowed_fields": [
+        "vorname",
+        "nachname",
+        "email",
+        "firma_abteilung",
+        "rolle",
+        "aktiv_status"
+      ],
+      "pow": true,
+      "pow_difficulty": 50000,
+      "title": "Teilnehmer — Formular"
+    },
+    {
+      "entity": "kurstermine",
+      "app_id": "6a33ac9f436c052d056df9f7",
+      "path": "/rest/apps/6a33ac9f436c052d056df9f7/records",
+      "allowed_fields": [
+        "startdatum",
+        "enddatum",
+        "ort",
+        "online_link",
+        "anmeldefrist",
+        "max_teilnehmer_abweichend",
+        "status"
+      ],
+      "pow": true,
+      "pow_difficulty": 50000,
+      "title": "Kurstermine — Formular"
+    },
+    {
+      "entity": "anmeldungen",
+      "app_id": "6a33aca0e11531f0f32fe8a9",
+      "path": "/rest/apps/6a33aca0e11531f0f32fe8a9/records",
+      "allowed_fields": [
+        "anmeldedatum",
+        "status",
+        "bemerkung"
+      ],
+      "pow": true,
+      "pow_difficulty": 50000,
+      "title": "Anmeldungen — Formular"
+    }
+  ]
+}

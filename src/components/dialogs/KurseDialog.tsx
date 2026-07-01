@@ -282,7 +282,7 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
         <Label htmlFor="kurstitel">Kurstitel</Label>
         <Input
           id="kurstitel"
-          placeholder="z. B. Python Grundlagen"
+          placeholder=""
           value={fields.kurstitel ?? ''}
           onChange={e => setFields(f => ({ ...f, kurstitel: e.target.value }))}
         />
@@ -293,7 +293,7 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
         <Label htmlFor="kurzbeschreibung">Kurzbeschreibung</Label>
         <Textarea
           id="kurzbeschreibung"
-          placeholder="Kurzer Überblick, worum es geht"
+          placeholder=""
           value={fields.kurzbeschreibung ?? ''}
           onChange={e => setFields(f => ({ ...f, kurzbeschreibung: e.target.value }))}
           rows={3}
@@ -305,7 +305,7 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
         <Label htmlFor="detaillierte_beschreibung">Detaillierte Beschreibung</Label>
         <Textarea
           id="detaillierte_beschreibung"
-          placeholder="Inhalte, Lernziele, Anforderungen..."
+          placeholder=""
           value={fields.detaillierte_beschreibung ?? ''}
           onChange={e => setFields(f => ({ ...f, detaillierte_beschreibung: e.target.value }))}
           rows={3}
@@ -321,7 +321,7 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
             role="radio"
             aria-checked={lookupKey(fields.kategorie) === 'fachlich'}
             onClick={() => setFields(f => ({ ...f, kategorie: (lookupKey(f.kategorie) === 'fachlich' ? undefined : 'fachlich') as any }))}
-            className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
               lookupKey(fields.kategorie) === 'fachlich'
                 ? 'bg-foreground text-background border-foreground'
                 : 'bg-background text-foreground border-input hover:bg-accent'
@@ -334,7 +334,7 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
             role="radio"
             aria-checked={lookupKey(fields.kategorie) === 'soft_skills'}
             onClick={() => setFields(f => ({ ...f, kategorie: (lookupKey(f.kategorie) === 'soft_skills' ? undefined : 'soft_skills') as any }))}
-            className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
               lookupKey(fields.kategorie) === 'soft_skills'
                 ? 'bg-foreground text-background border-foreground'
                 : 'bg-background text-foreground border-input hover:bg-accent'
@@ -347,7 +347,7 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
             role="radio"
             aria-checked={lookupKey(fields.kategorie) === 'it'}
             onClick={() => setFields(f => ({ ...f, kategorie: (lookupKey(f.kategorie) === 'it' ? undefined : 'it') as any }))}
-            className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
               lookupKey(fields.kategorie) === 'it'
                 ? 'bg-foreground text-background border-foreground'
                 : 'bg-background text-foreground border-input hover:bg-accent'
@@ -360,7 +360,7 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
             role="radio"
             aria-checked={lookupKey(fields.kategorie) === 'sonstiges'}
             onClick={() => setFields(f => ({ ...f, kategorie: (lookupKey(f.kategorie) === 'sonstiges' ? undefined : 'sonstiges') as any }))}
-            className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
               lookupKey(fields.kategorie) === 'sonstiges'
                 ? 'bg-foreground text-background border-foreground'
                 : 'bg-background text-foreground border-input hover:bg-accent'
@@ -379,7 +379,7 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
           type="number"
           step="any"
           {...numberInputProps(formEnhancements, 'dauer_anzahl')}
-          placeholder="z. B. 16"
+          placeholder=""
           value={fields.dauer_anzahl !== undefined ? fields.dauer_anzahl : (computedValues['dauer_anzahl'] ?? '')}
           onChange={e => setFields(f => ({ ...f, dauer_anzahl: clampNumberValue(formEnhancements, 'dauer_anzahl', e.target.value) }))}
         />
@@ -394,7 +394,7 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
             role="radio"
             aria-checked={lookupKey(fields.dauer_einheit) === 'stunden'}
             onClick={() => setFields(f => ({ ...f, dauer_einheit: (lookupKey(f.dauer_einheit) === 'stunden' ? undefined : 'stunden') as any }))}
-            className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
               lookupKey(fields.dauer_einheit) === 'stunden'
                 ? 'bg-foreground text-background border-foreground'
                 : 'bg-background text-foreground border-input hover:bg-accent'
@@ -407,7 +407,7 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
             role="radio"
             aria-checked={lookupKey(fields.dauer_einheit) === 'tage'}
             onClick={() => setFields(f => ({ ...f, dauer_einheit: (lookupKey(f.dauer_einheit) === 'tage' ? undefined : 'tage') as any }))}
-            className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
               lookupKey(fields.dauer_einheit) === 'tage'
                 ? 'bg-foreground text-background border-foreground'
                 : 'bg-background text-foreground border-input hover:bg-accent'
@@ -423,7 +423,7 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
         <Label htmlFor="zielgruppe">Zielgruppe</Label>
         <Input
           id="zielgruppe"
-          placeholder="z. B. Anfänger, Berufstätige"
+          placeholder=""
           value={fields.zielgruppe ?? ''}
           onChange={e => setFields(f => ({ ...f, zielgruppe: e.target.value }))}
         />
@@ -437,7 +437,7 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
           type="number"
           step="any"
           {...numberInputProps(formEnhancements, 'max_teilnehmer')}
-          placeholder="z. B. 12"
+          placeholder=""
           value={fields.max_teilnehmer !== undefined ? fields.max_teilnehmer : (computedValues['max_teilnehmer'] ?? '')}
           onChange={e => setFields(f => ({ ...f, max_teilnehmer: clampNumberValue(formEnhancements, 'max_teilnehmer', e.target.value) }))}
         />
@@ -452,7 +452,7 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
             role="radio"
             aria-checked={lookupKey(fields.status) === 'geplant'}
             onClick={() => setFields(f => ({ ...f, status: (lookupKey(f.status) === 'geplant' ? undefined : 'geplant') as any }))}
-            className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
               lookupKey(fields.status) === 'geplant'
                 ? 'bg-foreground text-background border-foreground'
                 : 'bg-background text-foreground border-input hover:bg-accent'
@@ -465,7 +465,7 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
             role="radio"
             aria-checked={lookupKey(fields.status) === 'aktiv'}
             onClick={() => setFields(f => ({ ...f, status: (lookupKey(f.status) === 'aktiv' ? undefined : 'aktiv') as any }))}
-            className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
               lookupKey(fields.status) === 'aktiv'
                 ? 'bg-foreground text-background border-foreground'
                 : 'bg-background text-foreground border-input hover:bg-accent'
@@ -478,7 +478,7 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
             role="radio"
             aria-checked={lookupKey(fields.status) === 'inaktiv'}
             onClick={() => setFields(f => ({ ...f, status: (lookupKey(f.status) === 'inaktiv' ? undefined : 'inaktiv') as any }))}
-            className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
               lookupKey(fields.status) === 'inaktiv'
                 ? 'bg-foreground text-background border-foreground'
                 : 'bg-background text-foreground border-input hover:bg-accent'
@@ -491,7 +491,7 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
             role="radio"
             aria-checked={lookupKey(fields.status) === 'archiviert'}
             onClick={() => setFields(f => ({ ...f, status: (lookupKey(f.status) === 'archiviert' ? undefined : 'archiviert') as any }))}
-            className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
               lookupKey(fields.status) === 'archiviert'
                 ? 'bg-foreground text-background border-foreground'
                 : 'bg-background text-foreground border-input hover:bg-accent'
@@ -579,7 +579,7 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
   return (
     <>
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
-      <DialogContent className="max-w-lg max-h-[92vh] flex flex-col overflow-hidden p-0 gap-0">
+      <DialogContent className="max-w-lg max-h-[92vh] flex flex-col overflow-hidden p-0 gap-0 max-sm:[&>button]:size-10 max-sm:[&>button]:grid max-sm:[&>button]:place-items-center max-sm:[&>button]:rounded-full max-sm:[&>button]:border max-sm:[&>button]:border-input max-sm:[&>button]:bg-background max-sm:[&>button]:opacity-100 max-sm:[&>button>svg]:size-5">
         <DialogHeader className="px-6 pt-5 pb-3 border-b flex flex-row items-center gap-3 space-y-0">
           <DialogTitle className="flex-1 truncate text-left">{DIALOG_INTENT}</DialogTitle>
           {enablePhotoScan && (
@@ -588,7 +588,7 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
               onClick={() => setAiOpen(o => !o)}
               aria-expanded={aiOpen}
               aria-controls="ai-fill-panel"
-              className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all mr-7 shadow-sm ${
+              className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 max-sm:py-2.5 max-sm:px-4 text-xs font-semibold transition-all mr-7 max-sm:mr-12 shadow-sm ${
                 aiOpen
                   ? 'bg-primary text-primary-foreground ring-2 ring-primary/30'
                   : 'bg-primary/10 text-primary border border-primary/30 hover:bg-primary/15 hover:border-primary/50'
@@ -770,7 +770,7 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex flex-1 flex-col min-h-0 min-w-0">
+        <form onSubmit={handleSubmit} className="flex flex-1 flex-col min-h-0 min-w-0 max-sm:[&_input]:h-11">
           <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-4 space-y-4 min-w-0">
             {(() => {
               const renderField = (k: string) => {
@@ -868,10 +868,11 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
               <span className="min-w-0 break-words">{submitError}</span>
             </div>
           )}
-          <DialogFooter className="sticky bottom-0 border-t bg-background/95 backdrop-blur px-6 py-3 gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>Abbrechen</Button>
+          <DialogFooter className="sticky bottom-0 border-t bg-background/95 backdrop-blur px-6 py-3 gap-2 max-sm:flex-row">
+            <Button type="button" variant="outline" onClick={onClose} className="max-sm:h-12 max-sm:flex-1 max-sm:text-base">Abbrechen</Button>
             <Button
               type="submit"
+              className="max-sm:h-12 max-sm:flex-1 max-sm:text-base"
               disabled={saving || !isDirty}
             >
               {saving ? 'Speichern...' : defaultValues ? 'Speichern' : 'Erstellen'}

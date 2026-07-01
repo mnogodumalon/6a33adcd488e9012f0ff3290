@@ -159,7 +159,7 @@ export default function PublicFormTrainer() {
                 role="radio"
                 aria-checked={lookupKey(fields.trainer_typ) === 'intern'}
                 onClick={() => setFields(f => ({ ...f, trainer_typ: (lookupKey(f.trainer_typ) === 'intern' ? undefined : 'intern') as any }))}
-                className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
                   lookupKey(fields.trainer_typ) === 'intern'
                     ? 'bg-foreground text-background border-foreground'
                     : 'bg-background text-foreground border-input hover:bg-accent'
@@ -172,7 +172,7 @@ export default function PublicFormTrainer() {
                 role="radio"
                 aria-checked={lookupKey(fields.trainer_typ) === 'extern'}
                 onClick={() => setFields(f => ({ ...f, trainer_typ: (lookupKey(f.trainer_typ) === 'extern' ? undefined : 'extern') as any }))}
-                className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
                   lookupKey(fields.trainer_typ) === 'extern'
                     ? 'bg-foreground text-background border-foreground'
                     : 'bg-background text-foreground border-input hover:bg-accent'

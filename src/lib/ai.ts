@@ -261,15 +261,77 @@ export async function extractPhotoMeta(file: File): Promise<{
   }
 }
 
-export async function reverseGeocode(lat: number, lng: number): Promise<string> {
+export type ReverseGeocodeResult = {
+  /** Full human-readable address — fits GeoLocation.info. */
+  display: string;
+  /** Address components (Nominatim may omit any). Map these onto separate
+   *  address fields if the app has them (street / no. / zip / city). */
+  road?: string;
+  houseNumber?: string;
+  postcode?: string;
+  city?: string;
+};
+
+/** Reverse-geocode coordinates → a STRUCTURED address. `addressdetails=1` adds
+ *  the component breakdown, so a consumer can pre-fill separate fields (street,
+ *  zip, city) in addition to the full string. All components are optional. */
+export async function reverseGeocodeDetailed(lat: number, lng: number): Promise<ReverseGeocodeResult> {
   try {
     const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=${navigator.language}`
+      `https://nominatim.openstreetmap.org/reverse?format=json&addressdetails=1&lat=${lat}&lon=${lng}&accept-language=${navigator.language}`
     );
     const data = await res.json();
-    return data.display_name ?? "";
+    const a = data.address ?? {};
+    return {
+      display: data.display_name ?? "",
+      road: a.road ?? a.pedestrian ?? a.footway,
+      houseNumber: a.house_number,
+      postcode: a.postcode,
+      city: a.city ?? a.town ?? a.village ?? a.municipality,
+    };
   } catch {
-    return "";
+    return { display: "" };
+  }
+}
+
+/** Backwards-compatible string form (the full address — for GeoLocation.info). */
+export async function reverseGeocode(lat: number, lng: number): Promise<string> {
+  return (await reverseGeocodeDetailed(lat, lng)).display;
+}
+
+/** FORWARD geocode: a free address string → the single best coordinate. Uses
+ *  Photon (Komoot/OSM) — the SAME source AddressAutocomplete uses, key-free and
+ *  built for search (unlike Nominatim, whose policy forbids per-keystroke use).
+ *  Returns null when nothing matches or the request was aborted. Forward
+ *  geocoding is inherently APPROXIMATE (an address resolves to one of several
+ *  candidates) — the caller should pair it with a visible, draggable map pin so
+ *  the result is confirmable, never write it silently as ground truth. */
+export async function geocodeAddress(
+  query: string,
+  signal?: AbortSignal,
+): Promise<{ lat: number; long: number; label: string } | null> {
+  const q = query.trim();
+  if (q.length < 3) return null;
+  try {
+    const lang = (navigator.language || "de").slice(0, 2);
+    const res = await fetch(
+      `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=1&lang=${lang}`,
+      { signal }
+    );
+    const data = await res.json();
+    const feat = data?.features?.[0];
+    const coords = feat?.geometry?.coordinates;
+    if (!Array.isArray(coords) || coords.length < 2) return null;
+    const [long, lat] = coords as [number, number];   // GeoJSON order is [long, lat]
+    if (typeof lat !== "number" || typeof long !== "number" || !Number.isFinite(lat) || !Number.isFinite(long)) return null;
+    const p = feat.properties ?? {};
+    const street = [p.street, p.housenumber].filter(Boolean).join(" ");
+    const label = [street || p.name, [p.postcode, p.city].filter(Boolean).join(" "), p.country]
+      .filter(Boolean)
+      .join(", ") || q;
+    return { lat, long, label };
+  } catch {
+    return null;
   }
 }
 

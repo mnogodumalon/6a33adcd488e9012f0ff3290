@@ -213,7 +213,7 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
         }
       }
       const photoContext = contextParts.length ? contextParts.join('\n') : undefined;
-      const schema = `{\n  "vorname": string | null, // Vorname\n  "nachname": string | null, // Nachname\n  "email": string | null, // E-Mail-Adresse\n  "firma_abteilung": string | null, // Firma / Abteilung\n  "rolle": string | null, // Rolle im Unternehmen\n  "aktiv_status": LookupValue | null, // Aktiv-Status (select one key: "aktiv" | "inaktiv") mapping: aktiv=Aktiv, inaktiv=Inaktiv\n}`;
+      const schema = `{\n  "vorname": string | null, // Vorname\n  "nachname": string | null, // Nachname\n  "email": string | null, // E-Mail-Adresse\n  "firma_abteilung": string | null, // Firma / Abteilung\n  "rolle": string | null, // Rolle im Unternehmen\n  "aktiv_status": LookupValue | null, // Aktiv-Status (select one key: "inaktiv" | "aktiv") mapping: inaktiv=Inaktiv, aktiv=Aktiv\n}`;
       const raw = await extractFromInput<Record<string, unknown>>(schema, {
         dataUri: uri,
         userText: aiText.trim() || undefined,
@@ -278,7 +278,7 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
         <Label htmlFor="vorname">Vorname</Label>
         <Input
           id="vorname"
-          placeholder="z. B. Max"
+          placeholder=""
           value={fields.vorname ?? ''}
           onChange={e => setFields(f => ({ ...f, vorname: e.target.value }))}
         />
@@ -289,7 +289,7 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
         <Label htmlFor="nachname">Nachname</Label>
         <Input
           id="nachname"
-          placeholder="z. B. Müller"
+          placeholder=""
           value={fields.nachname ?? ''}
           onChange={e => setFields(f => ({ ...f, nachname: e.target.value }))}
         />
@@ -301,7 +301,7 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
         <Input
           id="email"
           type="email"
-          placeholder="max@example.com"
+          placeholder=""
           value={fields.email ?? ''}
           onChange={e => setFields(f => ({ ...f, email: e.target.value }))}
         />
@@ -312,7 +312,7 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
         <Label htmlFor="firma_abteilung">Firma / Abteilung</Label>
         <Input
           id="firma_abteilung"
-          placeholder="z. B. ACME GmbH, IT-Abteilung"
+          placeholder=""
           value={fields.firma_abteilung ?? ''}
           onChange={e => setFields(f => ({ ...f, firma_abteilung: e.target.value }))}
         />
@@ -323,7 +323,7 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
         <Label htmlFor="rolle">Rolle im Unternehmen</Label>
         <Input
           id="rolle"
-          placeholder="z. B. Software-Entwickler"
+          placeholder=""
           value={fields.rolle ?? ''}
           onChange={e => setFields(f => ({ ...f, rolle: e.target.value }))}
         />
@@ -336,28 +336,28 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
           <button
             type="button"
             role="radio"
-            aria-checked={lookupKey(fields.aktiv_status) === 'aktiv'}
-            onClick={() => setFields(f => ({ ...f, aktiv_status: (lookupKey(f.aktiv_status) === 'aktiv' ? undefined : 'aktiv') as any }))}
-            className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
-              lookupKey(fields.aktiv_status) === 'aktiv'
-                ? 'bg-foreground text-background border-foreground'
-                : 'bg-background text-foreground border-input hover:bg-accent'
-            }`}
-          >
-            Aktiv
-          </button>
-          <button
-            type="button"
-            role="radio"
             aria-checked={lookupKey(fields.aktiv_status) === 'inaktiv'}
             onClick={() => setFields(f => ({ ...f, aktiv_status: (lookupKey(f.aktiv_status) === 'inaktiv' ? undefined : 'inaktiv') as any }))}
-            className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
               lookupKey(fields.aktiv_status) === 'inaktiv'
                 ? 'bg-foreground text-background border-foreground'
                 : 'bg-background text-foreground border-input hover:bg-accent'
             }`}
           >
             Inaktiv
+          </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={lookupKey(fields.aktiv_status) === 'aktiv'}
+            onClick={() => setFields(f => ({ ...f, aktiv_status: (lookupKey(f.aktiv_status) === 'aktiv' ? undefined : 'aktiv') as any }))}
+            className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+              lookupKey(fields.aktiv_status) === 'aktiv'
+                ? 'bg-foreground text-background border-foreground'
+                : 'bg-background text-foreground border-input hover:bg-accent'
+            }`}
+          >
+            Aktiv
           </button>
         </div>
       </div>
@@ -439,7 +439,7 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
   return (
     <>
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
-      <DialogContent className="max-w-lg max-h-[92vh] flex flex-col overflow-hidden p-0 gap-0">
+      <DialogContent className="max-w-lg max-h-[92vh] flex flex-col overflow-hidden p-0 gap-0 max-sm:[&>button]:size-10 max-sm:[&>button]:grid max-sm:[&>button]:place-items-center max-sm:[&>button]:rounded-full max-sm:[&>button]:border max-sm:[&>button]:border-input max-sm:[&>button]:bg-background max-sm:[&>button]:opacity-100 max-sm:[&>button>svg]:size-5">
         <DialogHeader className="px-6 pt-5 pb-3 border-b flex flex-row items-center gap-3 space-y-0">
           <DialogTitle className="flex-1 truncate text-left">{DIALOG_INTENT}</DialogTitle>
           {enablePhotoScan && (
@@ -448,7 +448,7 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
               onClick={() => setAiOpen(o => !o)}
               aria-expanded={aiOpen}
               aria-controls="ai-fill-panel"
-              className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all mr-7 shadow-sm ${
+              className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 max-sm:py-2.5 max-sm:px-4 text-xs font-semibold transition-all mr-7 max-sm:mr-12 shadow-sm ${
                 aiOpen
                   ? 'bg-primary text-primary-foreground ring-2 ring-primary/30'
                   : 'bg-primary/10 text-primary border border-primary/30 hover:bg-primary/15 hover:border-primary/50'
@@ -630,7 +630,7 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex flex-1 flex-col min-h-0 min-w-0">
+        <form onSubmit={handleSubmit} className="flex flex-1 flex-col min-h-0 min-w-0 max-sm:[&_input]:h-11">
           <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-4 space-y-4 min-w-0">
             {(() => {
               const renderField = (k: string) => {
@@ -728,10 +728,11 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
               <span className="min-w-0 break-words">{submitError}</span>
             </div>
           )}
-          <DialogFooter className="sticky bottom-0 border-t bg-background/95 backdrop-blur px-6 py-3 gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>Abbrechen</Button>
+          <DialogFooter className="sticky bottom-0 border-t bg-background/95 backdrop-blur px-6 py-3 gap-2 max-sm:flex-row">
+            <Button type="button" variant="outline" onClick={onClose} className="max-sm:h-12 max-sm:flex-1 max-sm:text-base">Abbrechen</Button>
             <Button
               type="submit"
+              className="max-sm:h-12 max-sm:flex-1 max-sm:text-base"
               disabled={saving || !isDirty}
             >
               {saving ? 'Speichern...' : defaultValues ? 'Speichern' : 'Erstellen'}

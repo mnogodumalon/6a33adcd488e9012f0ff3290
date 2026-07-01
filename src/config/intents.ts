@@ -14,8 +14,9 @@
  *   // </custom:intent-imports>
  *   …
  *   // <custom:intents>
- *   { path: '/intents/neue-buchung', label: 'Neue Buchung', icon: IconCalendarPlus, description: 'Buchung in 3 Schritten anlegen' },
- *   // </custom:intents>
+  { path: '/intents/kurstermin-planen', label: 'Termin planen', icon: IconCalendarPlus, description: 'Kurs auswählen, Termin anlegen und Trainer zuweisen' },
+  { path: '/intents/teilnehmer-anmelden', label: 'Teilnehmer anmelden', icon: IconUserPlus, description: 'Teilnehmer für einen Kurstermin anmelden' },
+  // </custom:intents>
  */
 import type { ComponentType } from 'react';
 

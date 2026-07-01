@@ -374,7 +374,7 @@ export function AnmeldungenDialog({ open, onClose, onSubmit, defaultValues, reco
         <Label htmlFor="kurstermin">Kurstermin</Label>
         <Combobox
           id="kurstermin"
-          placeholder="Welcher Kurstermin?"
+          placeholder=""
           items={kurstermineListAll.map(r => ({
             id: r.record_id,
             label: String(r.fields.ort ?? r.record_id),
@@ -393,7 +393,7 @@ export function AnmeldungenDialog({ open, onClose, onSubmit, defaultValues, reco
         <Label htmlFor="kurs">Kurs</Label>
         <Combobox
           id="kurs"
-          placeholder="Welcher Kurs?"
+          placeholder=""
           items={kurseListAll.map(r => ({
             id: r.record_id,
             label: String(r.fields.kurstitel ?? r.record_id),
@@ -412,7 +412,7 @@ export function AnmeldungenDialog({ open, onClose, onSubmit, defaultValues, reco
         <Label htmlFor="teilnehmer">Teilnehmer</Label>
         <Combobox
           id="teilnehmer"
-          placeholder="Wer meldet sich an?"
+          placeholder=""
           items={teilnehmerListAll.map(r => ({
             id: r.record_id,
             label: String(r.fields.vorname ?? r.record_id),
@@ -431,7 +431,7 @@ export function AnmeldungenDialog({ open, onClose, onSubmit, defaultValues, reco
         <Label htmlFor="anmeldedatum">Anmeldedatum</Label>
         <DatePicker
           id="anmeldedatum"
-          placeholder="Wann wurde angemeldet?"
+          placeholder=""
           mode="datetime"
           value={fields.anmeldedatum ?? null}
           onChange={v => setFields(f => ({ ...f, anmeldedatum: v ?? undefined }))}
@@ -445,7 +445,7 @@ export function AnmeldungenDialog({ open, onClose, onSubmit, defaultValues, reco
           value={lookupKey(fields.status) ?? ''}
           onValueChange={v => setFields(f => ({ ...f, status: v === 'none' ? undefined : v as any }))}
         >
-          <SelectTrigger id="status"><SelectValue placeholder="Wähle einen Status" /></SelectTrigger>
+          <SelectTrigger id="status" className="max-sm:h-11"><SelectValue placeholder="" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="none">—</SelectItem>
             <SelectItem value="vorgemerkt">Vorgemerkt</SelectItem>
@@ -463,7 +463,7 @@ export function AnmeldungenDialog({ open, onClose, onSubmit, defaultValues, reco
         <Label htmlFor="bemerkung">Bemerkung</Label>
         <Textarea
           id="bemerkung"
-          placeholder="Spezielle Wünsche, Allergien, Anmerkungen..."
+          placeholder=""
           value={fields.bemerkung ?? ''}
           onChange={e => setFields(f => ({ ...f, bemerkung: e.target.value }))}
           rows={3}
@@ -490,7 +490,7 @@ export function AnmeldungenDialog({ open, onClose, onSubmit, defaultValues, reco
   // eine Map { lookupKey: label } für ALLE Felder des Target-Schemas. Wird
   // beim Render-Walk gefiltert auf die in der computed-Formel tatsächlich
   // referenzierten lookupKeys (siehe applookupRefs unten).
-  const APPLOOKUP_LABELS: Record<string, Record<string, string>> = {"kurstermin": {"kurs": "Kurs", "startdatum": "Startdatum und -uhrzeit", "enddatum": "Enddatum und -uhrzeit", "ort": "Ort", "online_link": "Online-Link", "anmeldefrist": "Anmeldefrist", "trainer": "Trainer", "max_teilnehmer_abweichend": "Maximale Teilnehmerzahl (abweichend vom Kurs)", "status": "Status"}, "kurs": {"kurstitel": "Kurstitel", "kurzbeschreibung": "Kurzbeschreibung", "detaillierte_beschreibung": "Detaillierte Beschreibung", "kategorie": "Kategorie", "dauer_anzahl": "Dauer (Anzahl)", "dauer_einheit": "Dauer (Einheit)", "zielgruppe": "Zielgruppe", "max_teilnehmer": "Maximale Teilnehmerzahl", "status": "Status"}, "teilnehmer": {"vorname": "Vorname", "nachname": "Nachname", "email": "E-Mail-Adresse", "firma_abteilung": "Firma / Abteilung", "rolle": "Rolle im Unternehmen", "aktiv_status": "Aktiv-Status"}};
+  const APPLOOKUP_LABELS: Record<string, Record<string, string>> = {"kurstermin": {"raum": "Raum/Ort", "kurs": "Kurs", "startdatum": "Startdatum und -uhrzeit", "enddatum": "Enddatum und -uhrzeit", "ort": "Ort (Freitext)", "online_link": "Online-Link", "anmeldefrist": "Anmeldefrist", "trainer": "Trainer", "max_teilnehmer_abweichend": "Maximale Teilnehmerzahl (abweichend vom Kurs)", "status": "Status"}, "kurs": {"kurstitel": "Kurstitel", "kurzbeschreibung": "Kurzbeschreibung", "detaillierte_beschreibung": "Detaillierte Beschreibung", "kategorie": "Kategorie", "dauer_anzahl": "Dauer (Anzahl)", "dauer_einheit": "Dauer (Einheit)", "zielgruppe": "Zielgruppe", "max_teilnehmer": "Maximale Teilnehmerzahl", "status": "Status"}, "teilnehmer": {"vorname": "Vorname", "nachname": "Nachname", "email": "E-Mail-Adresse", "firma_abteilung": "Firma / Abteilung", "rolle": "Rolle im Unternehmen", "aktiv_status": "Aktiv-Status"}};
   const inputFields = useMemo(() => flattenFieldOrder(orderedFields), [orderedFieldsKey]);
   const backendFieldSet = useMemo(() => new Set(inputFields), [inputFields.join(',')]);
   const virtualComputed = useMemo(
@@ -547,7 +547,7 @@ export function AnmeldungenDialog({ open, onClose, onSubmit, defaultValues, reco
   return (
     <>
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
-      <DialogContent className="max-w-lg max-h-[92vh] flex flex-col overflow-hidden p-0 gap-0">
+      <DialogContent className="max-w-lg max-h-[92vh] flex flex-col overflow-hidden p-0 gap-0 max-sm:[&>button]:size-10 max-sm:[&>button]:grid max-sm:[&>button]:place-items-center max-sm:[&>button]:rounded-full max-sm:[&>button]:border max-sm:[&>button]:border-input max-sm:[&>button]:bg-background max-sm:[&>button]:opacity-100 max-sm:[&>button>svg]:size-5">
         <DialogHeader className="px-6 pt-5 pb-3 border-b flex flex-row items-center gap-3 space-y-0">
           <DialogTitle className="flex-1 truncate text-left">{DIALOG_INTENT}</DialogTitle>
           {enablePhotoScan && (
@@ -556,7 +556,7 @@ export function AnmeldungenDialog({ open, onClose, onSubmit, defaultValues, reco
               onClick={() => setAiOpen(o => !o)}
               aria-expanded={aiOpen}
               aria-controls="ai-fill-panel"
-              className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all mr-7 shadow-sm ${
+              className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 max-sm:py-2.5 max-sm:px-4 text-xs font-semibold transition-all mr-7 max-sm:mr-12 shadow-sm ${
                 aiOpen
                   ? 'bg-primary text-primary-foreground ring-2 ring-primary/30'
                   : 'bg-primary/10 text-primary border border-primary/30 hover:bg-primary/15 hover:border-primary/50'
@@ -738,7 +738,7 @@ export function AnmeldungenDialog({ open, onClose, onSubmit, defaultValues, reco
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex flex-1 flex-col min-h-0 min-w-0">
+        <form onSubmit={handleSubmit} className="flex flex-1 flex-col min-h-0 min-w-0 max-sm:[&_input]:h-11">
           <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-4 space-y-4 min-w-0">
             {(() => {
               const renderField = (k: string) => {
@@ -836,10 +836,11 @@ export function AnmeldungenDialog({ open, onClose, onSubmit, defaultValues, reco
               <span className="min-w-0 break-words">{submitError}</span>
             </div>
           )}
-          <DialogFooter className="sticky bottom-0 border-t bg-background/95 backdrop-blur px-6 py-3 gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>Abbrechen</Button>
+          <DialogFooter className="sticky bottom-0 border-t bg-background/95 backdrop-blur px-6 py-3 gap-2 max-sm:flex-row">
+            <Button type="button" variant="outline" onClick={onClose} className="max-sm:h-12 max-sm:flex-1 max-sm:text-base">Abbrechen</Button>
             <Button
               type="submit"
+              className="max-sm:h-12 max-sm:flex-1 max-sm:text-base"
               disabled={saving || !isDirty}
             >
               {saving ? 'Speichern...' : defaultValues ? 'Speichern' : 'Erstellen'}
@@ -865,6 +866,7 @@ export function AnmeldungenDialog({ open, onClose, onSubmit, defaultValues, reco
         defaultValues={createKurstermineInitial
           ? ({ ort: createKurstermineInitial } as any)
           : undefined}
+        raeumeUndOrteList={[]}
         kurseList={kurseList}
         trainerList={[]}
       />

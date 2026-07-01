@@ -174,28 +174,28 @@ export default function PublicFormTeilnehmer() {
               <button
                 type="button"
                 role="radio"
-                aria-checked={lookupKey(fields.aktiv_status) === 'aktiv'}
-                onClick={() => setFields(f => ({ ...f, aktiv_status: (lookupKey(f.aktiv_status) === 'aktiv' ? undefined : 'aktiv') as any }))}
-                className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
-                  lookupKey(fields.aktiv_status) === 'aktiv'
-                    ? 'bg-foreground text-background border-foreground'
-                    : 'bg-background text-foreground border-input hover:bg-accent'
-                }`}
-              >
-                Aktiv
-              </button>
-              <button
-                type="button"
-                role="radio"
                 aria-checked={lookupKey(fields.aktiv_status) === 'inaktiv'}
                 onClick={() => setFields(f => ({ ...f, aktiv_status: (lookupKey(f.aktiv_status) === 'inaktiv' ? undefined : 'inaktiv') as any }))}
-                className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
                   lookupKey(fields.aktiv_status) === 'inaktiv'
                     ? 'bg-foreground text-background border-foreground'
                     : 'bg-background text-foreground border-input hover:bg-accent'
                 }`}
               >
                 Inaktiv
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={lookupKey(fields.aktiv_status) === 'aktiv'}
+                onClick={() => setFields(f => ({ ...f, aktiv_status: (lookupKey(f.aktiv_status) === 'aktiv' ? undefined : 'aktiv') as any }))}
+                className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                  lookupKey(fields.aktiv_status) === 'aktiv'
+                    ? 'bg-foreground text-background border-foreground'
+                    : 'bg-background text-foreground border-input hover:bg-accent'
+                }`}
+              >
+                Aktiv
               </button>
             </div>
           </div>

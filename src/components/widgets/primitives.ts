@@ -1,7 +1,17 @@
 /**
  * widgets/primitives.ts — shared widget MECHANICS (Tier 3 / M4).
  *
- * @version 1.6.0
+ * @version 1.7.0
+ * @since 2026-06-25  (1.7.0: family callback `OnMapPointClick` — the geo
+ *                     analog of OnAddCard/OnEmptyClick for MapWidget's optional
+ *                     "tap an empty point → create" affordance. An OBJECT
+ *                     `{ lat, long }`, never two positional numbers (both are
+ *                     numbers → silently swappable), and `long` not `lng` (the
+ *                     GeoLocation field name). Documentary anchor only; the
+ *                     widget spells the signature inline, like the time widgets
+ *                     do for onEmptyClick. No mechanics — MapWidget copies the
+ *                     Leaflet load pattern from GeoMapPicker (sister widgets
+ *                     never import each other) and owns its own map geometry.)
  * @since 2026-06-11  (1.6.0: DRAG PROXY (Bryntum DragHelper pattern) — a
  *                     compact stand-in of the grabbed item follows the
  *                     pointer (mouse: trailing the cursor; touch: floating
@@ -86,6 +96,15 @@ export type OnRangeCreate = (start: Date, end: Date, group?: string) => void;
  *  family's onEmptyClick starts with a Date — boards without a time axis use
  *  THIS type instead of faking a date. */
 export type OnAddCard = (column: string) => void;
+
+/** "Empty point on the map tapped" (MapWidget's optional create affordance):
+ *  the geographic coordinate, so the consumer opens a prefilled create dialog.
+ *  An OBJECT, never two positional numbers — `(lat, long)` is silently
+ *  swappable (both are numbers); `{ lat, long }` makes a transposed mapping a
+ *  compile error. `long`, never `lng` (the Living-Apps GeoLocation field name).
+ *  MapWidget spells the signature inline in its props (like the time widgets do
+ *  for onEmptyClick); this is the shared documentary anchor. */
+export type OnMapPointClick = (point: { lat: number; long: number }) => void;
 
 /** Return type of every WRITE-GESTURE callback (drop / resize / card move):
  *  return nothing = accepted; return a STRING (sync or via Promise) = the

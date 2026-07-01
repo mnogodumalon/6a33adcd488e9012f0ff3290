@@ -278,7 +278,7 @@ export function TrainerDialog({ open, onClose, onSubmit, defaultValues, recordId
         <Label htmlFor="vorname">Vorname</Label>
         <Input
           id="vorname"
-          placeholder="z. B. Anna"
+          placeholder=""
           value={fields.vorname ?? ''}
           onChange={e => setFields(f => ({ ...f, vorname: e.target.value }))}
         />
@@ -289,7 +289,7 @@ export function TrainerDialog({ open, onClose, onSubmit, defaultValues, recordId
         <Label htmlFor="nachname">Nachname</Label>
         <Input
           id="nachname"
-          placeholder="z. B. Schmidt"
+          placeholder=""
           value={fields.nachname ?? ''}
           onChange={e => setFields(f => ({ ...f, nachname: e.target.value }))}
         />
@@ -301,7 +301,7 @@ export function TrainerDialog({ open, onClose, onSubmit, defaultValues, recordId
         <Input
           id="email"
           type="email"
-          placeholder="anna@example.com"
+          placeholder=""
           value={fields.email ?? ''}
           onChange={e => setFields(f => ({ ...f, email: e.target.value }))}
         />
@@ -316,7 +316,7 @@ export function TrainerDialog({ open, onClose, onSubmit, defaultValues, recordId
             role="radio"
             aria-checked={lookupKey(fields.trainer_typ) === 'intern'}
             onClick={() => setFields(f => ({ ...f, trainer_typ: (lookupKey(f.trainer_typ) === 'intern' ? undefined : 'intern') as any }))}
-            className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
               lookupKey(fields.trainer_typ) === 'intern'
                 ? 'bg-foreground text-background border-foreground'
                 : 'bg-background text-foreground border-input hover:bg-accent'
@@ -329,7 +329,7 @@ export function TrainerDialog({ open, onClose, onSubmit, defaultValues, recordId
             role="radio"
             aria-checked={lookupKey(fields.trainer_typ) === 'extern'}
             onClick={() => setFields(f => ({ ...f, trainer_typ: (lookupKey(f.trainer_typ) === 'extern' ? undefined : 'extern') as any }))}
-            className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
               lookupKey(fields.trainer_typ) === 'extern'
                 ? 'bg-foreground text-background border-foreground'
                 : 'bg-background text-foreground border-input hover:bg-accent'
@@ -345,7 +345,7 @@ export function TrainerDialog({ open, onClose, onSubmit, defaultValues, recordId
         <Label htmlFor="fachgebiete">Fachgebiet(e)</Label>
         <Textarea
           id="fachgebiete"
-          placeholder="Spezialisierungen, Themen..."
+          placeholder=""
           value={fields.fachgebiete ?? ''}
           onChange={e => setFields(f => ({ ...f, fachgebiete: e.target.value }))}
           rows={3}
@@ -429,7 +429,7 @@ export function TrainerDialog({ open, onClose, onSubmit, defaultValues, recordId
   return (
     <>
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
-      <DialogContent className="max-w-lg max-h-[92vh] flex flex-col overflow-hidden p-0 gap-0">
+      <DialogContent className="max-w-lg max-h-[92vh] flex flex-col overflow-hidden p-0 gap-0 max-sm:[&>button]:size-10 max-sm:[&>button]:grid max-sm:[&>button]:place-items-center max-sm:[&>button]:rounded-full max-sm:[&>button]:border max-sm:[&>button]:border-input max-sm:[&>button]:bg-background max-sm:[&>button]:opacity-100 max-sm:[&>button>svg]:size-5">
         <DialogHeader className="px-6 pt-5 pb-3 border-b flex flex-row items-center gap-3 space-y-0">
           <DialogTitle className="flex-1 truncate text-left">{DIALOG_INTENT}</DialogTitle>
           {enablePhotoScan && (
@@ -438,7 +438,7 @@ export function TrainerDialog({ open, onClose, onSubmit, defaultValues, recordId
               onClick={() => setAiOpen(o => !o)}
               aria-expanded={aiOpen}
               aria-controls="ai-fill-panel"
-              className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all mr-7 shadow-sm ${
+              className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 max-sm:py-2.5 max-sm:px-4 text-xs font-semibold transition-all mr-7 max-sm:mr-12 shadow-sm ${
                 aiOpen
                   ? 'bg-primary text-primary-foreground ring-2 ring-primary/30'
                   : 'bg-primary/10 text-primary border border-primary/30 hover:bg-primary/15 hover:border-primary/50'
@@ -620,7 +620,7 @@ export function TrainerDialog({ open, onClose, onSubmit, defaultValues, recordId
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex flex-1 flex-col min-h-0 min-w-0">
+        <form onSubmit={handleSubmit} className="flex flex-1 flex-col min-h-0 min-w-0 max-sm:[&_input]:h-11">
           <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-4 space-y-4 min-w-0">
             {(() => {
               const renderField = (k: string) => {
@@ -718,10 +718,11 @@ export function TrainerDialog({ open, onClose, onSubmit, defaultValues, recordId
               <span className="min-w-0 break-words">{submitError}</span>
             </div>
           )}
-          <DialogFooter className="sticky bottom-0 border-t bg-background/95 backdrop-blur px-6 py-3 gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>Abbrechen</Button>
+          <DialogFooter className="sticky bottom-0 border-t bg-background/95 backdrop-blur px-6 py-3 gap-2 max-sm:flex-row">
+            <Button type="button" variant="outline" onClick={onClose} className="max-sm:h-12 max-sm:flex-1 max-sm:text-base">Abbrechen</Button>
             <Button
               type="submit"
+              className="max-sm:h-12 max-sm:flex-1 max-sm:text-base"
               disabled={saving || !isDirty}
             >
               {saving ? 'Speichern...' : defaultValues ? 'Speichern' : 'Erstellen'}

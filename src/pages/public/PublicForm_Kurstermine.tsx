@@ -144,7 +144,7 @@ export default function PublicFormKurstermine() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="ort">Ort</Label>
+            <Label htmlFor="ort">Ort (Freitext)</Label>
             <Input
               id="ort"
               placeholder=""
@@ -190,7 +190,7 @@ export default function PublicFormKurstermine() {
                 role="radio"
                 aria-checked={lookupKey(fields.status) === 'geplant'}
                 onClick={() => setFields(f => ({ ...f, status: (lookupKey(f.status) === 'geplant' ? undefined : 'geplant') as any }))}
-                className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
                   lookupKey(fields.status) === 'geplant'
                     ? 'bg-foreground text-background border-foreground'
                     : 'bg-background text-foreground border-input hover:bg-accent'
@@ -203,7 +203,7 @@ export default function PublicFormKurstermine() {
                 role="radio"
                 aria-checked={lookupKey(fields.status) === 'offen'}
                 onClick={() => setFields(f => ({ ...f, status: (lookupKey(f.status) === 'offen' ? undefined : 'offen') as any }))}
-                className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
                   lookupKey(fields.status) === 'offen'
                     ? 'bg-foreground text-background border-foreground'
                     : 'bg-background text-foreground border-input hover:bg-accent'
@@ -216,7 +216,7 @@ export default function PublicFormKurstermine() {
                 role="radio"
                 aria-checked={lookupKey(fields.status) === 'voll'}
                 onClick={() => setFields(f => ({ ...f, status: (lookupKey(f.status) === 'voll' ? undefined : 'voll') as any }))}
-                className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
                   lookupKey(fields.status) === 'voll'
                     ? 'bg-foreground text-background border-foreground'
                     : 'bg-background text-foreground border-input hover:bg-accent'
@@ -229,7 +229,7 @@ export default function PublicFormKurstermine() {
                 role="radio"
                 aria-checked={lookupKey(fields.status) === 'durchgefuehrt'}
                 onClick={() => setFields(f => ({ ...f, status: (lookupKey(f.status) === 'durchgefuehrt' ? undefined : 'durchgefuehrt') as any }))}
-                className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
                   lookupKey(fields.status) === 'durchgefuehrt'
                     ? 'bg-foreground text-background border-foreground'
                     : 'bg-background text-foreground border-input hover:bg-accent'
@@ -242,7 +242,7 @@ export default function PublicFormKurstermine() {
                 role="radio"
                 aria-checked={lookupKey(fields.status) === 'abgesagt'}
                 onClick={() => setFields(f => ({ ...f, status: (lookupKey(f.status) === 'abgesagt' ? undefined : 'abgesagt') as any }))}
-                className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
                   lookupKey(fields.status) === 'abgesagt'
                     ? 'bg-foreground text-background border-foreground'
                     : 'bg-background text-foreground border-input hover:bg-accent'

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import type { Kurstermine, Kurse, Trainer, LookupValue } from '@/types/app';
+import type { Kurstermine, RaeumeUndOrte, Kurse, Trainer, LookupValue } from '@/types/app';
 import { APP_IDS, LOOKUP_OPTIONS } from '@/types/app';
 import { extractRecordId, createRecordUrl, cleanFieldsForApi, getUserProfile, LivingAppsService } from '@/services/livingAppsService';
 import {
@@ -15,6 +15,7 @@ import { formEnhancements, computedDeps, computedApplookupRefs } from '@/config/
 import { AttachmentsSection } from '@/components/AttachmentsSection';
 import { Textarea } from '@/components/ui/textarea';
 import { Combobox } from '@/components/Combobox';
+import { RaeumeUndOrteDialog } from '@/components/dialogs/RaeumeUndOrteDialog';
 import { KurseDialog } from '@/components/dialogs/KurseDialog';
 import { TrainerDialog } from '@/components/dialogs/TrainerDialog';
 import { DatePicker } from '@/components/DatePicker';
@@ -35,6 +36,7 @@ interface KurstermineDialogProps {
   };
   /** Record id when editing — enables the attachments section. Omit on create. */
   recordId?: string;
+  raeumeUndOrteList: RaeumeUndOrte[];
   kurseList: Kurse[];
   trainerList: Trainer[];
   enablePhotoScan?: boolean;
@@ -48,6 +50,7 @@ const NORMALIZE_LOOKUPS: Record<string, readonly { key: string; label: string }[
   status: LOOKUP_OPTIONS['kurstermine']?.['status'] ?? [],
 };
 const NORMALIZE_APPLOOKUPS: Record<string, string> = {
+  raum: APP_IDS.RAEUME_UND_ORTE,
   kurs: APP_IDS.KURSE,
   trainer: APP_IDS.TRAINER,
 };
@@ -66,7 +69,7 @@ function normalizeDefaults(values: Record<string, unknown>): Record<string, unkn
   return out;
 }
 
-export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, recordId, kurseList, trainerList, enablePhotoScan = true, enablePhotoLocation = true }: KurstermineDialogProps) {
+export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, recordId, raeumeUndOrteList, kurseList, trainerList, enablePhotoScan = true, enablePhotoLocation = true }: KurstermineDialogProps) {
   const [fields, setFields] = useState<Partial<Kurstermine['fields']>>({});
   const [saving, setSaving] = useState(false);
   const normalizedDefaults = useMemo<Record<string, unknown> | undefined>(
@@ -84,6 +87,23 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
       return true;
     }
   }, [fields, normalizedDefaults]);
+  // Inline-Create state for "RaeumeUndOrte" target. The dropdown's
+  // "+ Neuer …" option opens a sub-dialog; on submit we POST, add the new
+  // record to the local `extraRaeumeUndOrte` list, and select it in
+  // the originating Combobox via the captured `createRaeumeUndOrteField`.
+  const [createRaeumeUndOrteOpen, setCreateRaeumeUndOrteOpen] = useState(false);
+  const [createRaeumeUndOrteInitial, setCreateRaeumeUndOrteInitial] = useState('');
+  const [createRaeumeUndOrteField, setCreateRaeumeUndOrteField] = useState<string>('');
+  const [extraRaeumeUndOrte, setExtraRaeumeUndOrte] = useState< RaeumeUndOrte[]>([]);
+  const raeumeUndOrteListAll = useMemo(
+    () => [...raeumeUndOrteList, ...extraRaeumeUndOrte],
+    [raeumeUndOrteList, extraRaeumeUndOrte],
+  );
+  function openCreateRaeumeUndOrte(fieldKey: string, q: string) {
+    setCreateRaeumeUndOrteField(fieldKey);
+    setCreateRaeumeUndOrteInitial(q);
+    setCreateRaeumeUndOrteOpen(true);
+  }
   // Inline-Create state for "Kurse" target. The dropdown's
   // "+ Neuer …" option opens a sub-dialog; on submit we POST, add the new
   // record to the local `extraKurse` list, and select it in
@@ -140,10 +160,11 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
   // operands can resolve to numeric fields on the target record.
   const computedContext = useMemo<ComputedContext>(() => ({
     lookupLists: {
+      'raum': raeumeUndOrteList,
       'kurs': kurseList,
       'trainer': trainerList,
     },
-  }), [kurseList, trainerList, ]);
+  }), [raeumeUndOrteList, kurseList, trainerList, ]);
   const computedValues = useMemo<Record<string, number | null>>(() => {
     let out: Record<string, number | null> = {};
     const entries = Object.entries(formEnhancements.computed);
@@ -255,6 +276,7 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
       if (parts.length) {
         contextParts.push(`<photo-metadata>\nThe following metadata was extracted from the photo\'s EXIF data:\n${parts.join('\n')}\n</photo-metadata>`);
       }
+      contextParts.push(`<available-records field="raum" entity="Räume und Orte">\n${JSON.stringify(raeumeUndOrteList.map(r => ({ record_id: r.record_id, ...r.fields })), null, 2)}\n</available-records>`);
       contextParts.push(`<available-records field="kurs" entity="Kurse">\n${JSON.stringify(kurseList.map(r => ({ record_id: r.record_id, ...r.fields })), null, 2)}\n</available-records>`);
       contextParts.push(`<available-records field="trainer" entity="Trainer">\n${JSON.stringify(trainerList.map(r => ({ record_id: r.record_id, ...r.fields })), null, 2)}\n</available-records>`);
       if (usePersonalInfo) {
@@ -266,7 +288,7 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
         }
       }
       const photoContext = contextParts.length ? contextParts.join('\n') : undefined;
-      const schema = `{\n  "kurs": string | null, // Display name from Kurse (see <available-records>)\n  "startdatum": string | null, // YYYY-MM-DDTHH:MM\n  "enddatum": string | null, // YYYY-MM-DDTHH:MM\n  "ort": string | null, // Ort\n  "online_link": string | null, // Online-Link\n  "anmeldefrist": string | null, // YYYY-MM-DD\n  "trainer": string | null, // Display name from Trainer (see <available-records>)\n  "max_teilnehmer_abweichend": number | null, // Maximale Teilnehmerzahl (abweichend vom Kurs)\n  "status": LookupValue | null, // Status (select one key: "geplant" | "offen" | "voll" | "durchgefuehrt" | "abgesagt") mapping: geplant=Geplant, offen=Offen zur Anmeldung, voll=Voll, durchgefuehrt=Durchgeführt, abgesagt=Abgesagt\n}`;
+      const schema = `{\n  "raum": string | null, // Display name from Räume und Orte (see <available-records>)\n  "kurs": string | null, // Display name from Kurse (see <available-records>)\n  "startdatum": string | null, // YYYY-MM-DDTHH:MM\n  "enddatum": string | null, // YYYY-MM-DDTHH:MM\n  "ort": string | null, // Ort (Freitext)\n  "online_link": string | null, // Online-Link\n  "anmeldefrist": string | null, // YYYY-MM-DD\n  "trainer": string | null, // Display name from Trainer (see <available-records>)\n  "max_teilnehmer_abweichend": number | null, // Maximale Teilnehmerzahl (abweichend vom Kurs)\n  "status": LookupValue | null, // Status (select one key: "geplant" | "offen" | "voll" | "durchgefuehrt" | "abgesagt") mapping: geplant=Geplant, offen=Offen zur Anmeldung, voll=Voll, durchgefuehrt=Durchgeführt, abgesagt=Abgesagt\n}`;
       const raw = await extractFromInput<Record<string, unknown>>(schema, {
         dataUri: uri,
         userText: aiText.trim() || undefined,
@@ -279,10 +301,15 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
           const n = name.toLowerCase().trim();
           return candidates.some(c => c.toLowerCase().includes(n) || n.includes(c.toLowerCase()));
         }
-        const applookupKeys = new Set<string>(["kurs", "trainer"]);
+        const applookupKeys = new Set<string>(["raum", "kurs", "trainer"]);
         for (const [k, v] of Object.entries(raw)) {
           if (applookupKeys.has(k)) continue;
           if (v != null) merged[k] = v;
+        }
+        const raumName = raw['raum'] as string | null;
+        if (raumName) {
+          const raumMatch = raeumeUndOrteList.find(r => matchName(raumName!, [String(r.fields.raumname ?? '')]));
+          if (raumMatch) merged['raum'] = createRecordUrl(APP_IDS.RAEUME_UND_ORTE, raumMatch.record_id);
         }
         const kursName = raw['kurs'] as string | null;
         if (kursName) {
@@ -338,12 +365,31 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
   const DIALOG_INTENT = defaultValues ? 'Kurstermine bearbeiten' : 'Kurstermine hinzufügen';
 
   const fieldBlocks: Record<string, React.ReactNode> = {
+    'raum': (
+      <div key="raum" className="space-y-1.5">
+        <Label htmlFor="raum">Raum/Ort</Label>
+        <Combobox
+          id="raum"
+          placeholder=""
+          items={raeumeUndOrteListAll.map(r => ({
+            id: r.record_id,
+            label: String(r.fields.raumname ?? r.record_id),
+          }))}
+          value={extractRecordId(fields.raum)}
+          onChange={id => setFields(f => ({ ...f, raum: id ? createRecordUrl(APP_IDS.RAEUME_UND_ORTE, id) : undefined }))}
+          searchPlaceholder="Suchen…"
+          emptyText="Kein Treffer"
+          onCreateNew={(q) => openCreateRaeumeUndOrte("raum", q)}
+          createLabel="Neu in Räume und Orte"
+        />
+      </div>
+    ),
     'kurs': (
       <div key="kurs" className="space-y-1.5">
         <Label htmlFor="kurs">Kurs</Label>
         <Combobox
           id="kurs"
-          placeholder="Welcher Kurs?"
+          placeholder=""
           items={kurseListAll.map(r => ({
             id: r.record_id,
             label: String(r.fields.kurstitel ?? r.record_id),
@@ -362,7 +408,7 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
         <Label htmlFor="startdatum">Startdatum und -uhrzeit</Label>
         <DatePicker
           id="startdatum"
-          placeholder="Wann startet der Kurs?"
+          placeholder=""
           mode="datetime"
           value={fields.startdatum ?? null}
           onChange={v => setFields(f => ({ ...f, startdatum: v ?? undefined }))}
@@ -374,7 +420,7 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
         <Label htmlFor="enddatum">Enddatum und -uhrzeit</Label>
         <DatePicker
           id="enddatum"
-          placeholder="Wann endet der Kurs?"
+          placeholder=""
           mode="datetime"
           value={fields.enddatum ?? null}
           onChange={v => setFields(f => ({ ...f, enddatum: v ?? undefined }))}
@@ -383,10 +429,10 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
     ),
     'ort': (
       <div key="ort" className="space-y-1.5">
-        <Label htmlFor="ort">Ort</Label>
+        <Label htmlFor="ort">Ort (Freitext)</Label>
         <Input
           id="ort"
-          placeholder="z. B. Raum 301 oder Online"
+          placeholder=""
           value={fields.ort ?? ''}
           onChange={e => setFields(f => ({ ...f, ort: e.target.value }))}
         />
@@ -407,7 +453,7 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
         <Label htmlFor="anmeldefrist">Anmeldefrist</Label>
         <DatePicker
           id="anmeldefrist"
-          placeholder="Letzter Anmeldetermin"
+          placeholder=""
           mode="date"
           value={fields.anmeldefrist ?? null}
           onChange={v => setFields(f => ({ ...f, anmeldefrist: v ?? undefined }))}
@@ -419,7 +465,7 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
         <Label htmlFor="trainer">Trainer</Label>
         <Combobox
           id="trainer"
-          placeholder="Welcher Trainer führt durch?"
+          placeholder=""
           items={trainerListAll.map(r => ({
             id: r.record_id,
             label: String(r.fields.vorname ?? r.record_id),
@@ -441,7 +487,7 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
           type="number"
           step="any"
           {...numberInputProps(formEnhancements, 'max_teilnehmer_abweichend')}
-          placeholder="z. B. 10 (leer = vom Kurs)"
+          placeholder=""
           value={fields.max_teilnehmer_abweichend !== undefined ? fields.max_teilnehmer_abweichend : (computedValues['max_teilnehmer_abweichend'] ?? '')}
           onChange={e => setFields(f => ({ ...f, max_teilnehmer_abweichend: clampNumberValue(formEnhancements, 'max_teilnehmer_abweichend', e.target.value) }))}
         />
@@ -456,7 +502,7 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
             role="radio"
             aria-checked={lookupKey(fields.status) === 'geplant'}
             onClick={() => setFields(f => ({ ...f, status: (lookupKey(f.status) === 'geplant' ? undefined : 'geplant') as any }))}
-            className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
               lookupKey(fields.status) === 'geplant'
                 ? 'bg-foreground text-background border-foreground'
                 : 'bg-background text-foreground border-input hover:bg-accent'
@@ -469,7 +515,7 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
             role="radio"
             aria-checked={lookupKey(fields.status) === 'offen'}
             onClick={() => setFields(f => ({ ...f, status: (lookupKey(f.status) === 'offen' ? undefined : 'offen') as any }))}
-            className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
               lookupKey(fields.status) === 'offen'
                 ? 'bg-foreground text-background border-foreground'
                 : 'bg-background text-foreground border-input hover:bg-accent'
@@ -482,7 +528,7 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
             role="radio"
             aria-checked={lookupKey(fields.status) === 'voll'}
             onClick={() => setFields(f => ({ ...f, status: (lookupKey(f.status) === 'voll' ? undefined : 'voll') as any }))}
-            className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
               lookupKey(fields.status) === 'voll'
                 ? 'bg-foreground text-background border-foreground'
                 : 'bg-background text-foreground border-input hover:bg-accent'
@@ -495,7 +541,7 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
             role="radio"
             aria-checked={lookupKey(fields.status) === 'durchgefuehrt'}
             onClick={() => setFields(f => ({ ...f, status: (lookupKey(f.status) === 'durchgefuehrt' ? undefined : 'durchgefuehrt') as any }))}
-            className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
               lookupKey(fields.status) === 'durchgefuehrt'
                 ? 'bg-foreground text-background border-foreground'
                 : 'bg-background text-foreground border-input hover:bg-accent'
@@ -508,7 +554,7 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
             role="radio"
             aria-checked={lookupKey(fields.status) === 'abgesagt'}
             onClick={() => setFields(f => ({ ...f, status: (lookupKey(f.status) === 'abgesagt' ? undefined : 'abgesagt') as any }))}
-            className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
               lookupKey(fields.status) === 'abgesagt'
                 ? 'bg-foreground text-background border-foreground'
                 : 'bg-background text-foreground border-input hover:bg-accent'
@@ -533,13 +579,13 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
   //     kein passendes Backend-Feld in orderedFields) erscheinen NICHT als
   //     Input, sondern unten als kompakte 'Berechnungen'-Übersicht oder als
   //     Inline-Hint unter dem letzten beitragenden Input.
-  const FIELD_LABELS: Record<string, string> = {"kurs": "Kurs", "startdatum": "Startdatum und -uhrzeit", "enddatum": "Enddatum und -uhrzeit", "ort": "Ort", "online_link": "Online-Link", "anmeldefrist": "Anmeldefrist", "trainer": "Trainer", "max_teilnehmer_abweichend": "Maximale Teilnehmerzahl (abweichend vom Kurs)", "status": "Status"};
+  const FIELD_LABELS: Record<string, string> = {"raum": "Raum/Ort", "kurs": "Kurs", "startdatum": "Startdatum und -uhrzeit", "enddatum": "Enddatum und -uhrzeit", "ort": "Ort (Freitext)", "online_link": "Online-Link", "anmeldefrist": "Anmeldefrist", "trainer": "Trainer", "max_teilnehmer_abweichend": "Maximale Teilnehmerzahl (abweichend vom Kurs)", "status": "Status"};
   const CURRENCY_KEYS = new Set<string>([]);
   // Applookup-Referenz-Labels: pro applookup-Feld in dieser Form (ownKey)
   // eine Map { lookupKey: label } für ALLE Felder des Target-Schemas. Wird
   // beim Render-Walk gefiltert auf die in der computed-Formel tatsächlich
   // referenzierten lookupKeys (siehe applookupRefs unten).
-  const APPLOOKUP_LABELS: Record<string, Record<string, string>> = {"kurs": {"kurstitel": "Kurstitel", "kurzbeschreibung": "Kurzbeschreibung", "detaillierte_beschreibung": "Detaillierte Beschreibung", "kategorie": "Kategorie", "dauer_anzahl": "Dauer (Anzahl)", "dauer_einheit": "Dauer (Einheit)", "zielgruppe": "Zielgruppe", "max_teilnehmer": "Maximale Teilnehmerzahl", "status": "Status"}, "trainer": {"vorname": "Vorname", "nachname": "Nachname", "email": "E-Mail-Adresse", "trainer_typ": "Trainer-Typ", "fachgebiete": "Fachgebiet(e)"}};
+  const APPLOOKUP_LABELS: Record<string, Record<string, string>> = {"raum": {"raumname": "Name des Raums/Orts", "strasse": "Straße", "hausnummer": "Hausnummer", "plz": "PLZ", "stadt": "Stadt", "kapazitaet": "Maximale Personenzahl", "ausstattung": "Ausstattung", "raum_typ": "Typ", "status": "Status", "online_raum": "Online-Raum", "online_link": "Online-Link", "bemerkung": "Bemerkung"}, "kurs": {"kurstitel": "Kurstitel", "kurzbeschreibung": "Kurzbeschreibung", "detaillierte_beschreibung": "Detaillierte Beschreibung", "kategorie": "Kategorie", "dauer_anzahl": "Dauer (Anzahl)", "dauer_einheit": "Dauer (Einheit)", "zielgruppe": "Zielgruppe", "max_teilnehmer": "Maximale Teilnehmerzahl", "status": "Status"}, "trainer": {"vorname": "Vorname", "nachname": "Nachname", "email": "E-Mail-Adresse", "trainer_typ": "Trainer-Typ", "fachgebiete": "Fachgebiet(e)"}};
   const inputFields = useMemo(() => flattenFieldOrder(orderedFields), [orderedFieldsKey]);
   const backendFieldSet = useMemo(() => new Set(inputFields), [inputFields.join(',')]);
   const virtualComputed = useMemo(
@@ -596,7 +642,7 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
   return (
     <>
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
-      <DialogContent className="max-w-lg max-h-[92vh] flex flex-col overflow-hidden p-0 gap-0">
+      <DialogContent className="max-w-lg max-h-[92vh] flex flex-col overflow-hidden p-0 gap-0 max-sm:[&>button]:size-10 max-sm:[&>button]:grid max-sm:[&>button]:place-items-center max-sm:[&>button]:rounded-full max-sm:[&>button]:border max-sm:[&>button]:border-input max-sm:[&>button]:bg-background max-sm:[&>button]:opacity-100 max-sm:[&>button>svg]:size-5">
         <DialogHeader className="px-6 pt-5 pb-3 border-b flex flex-row items-center gap-3 space-y-0">
           <DialogTitle className="flex-1 truncate text-left">{DIALOG_INTENT}</DialogTitle>
           {enablePhotoScan && (
@@ -605,7 +651,7 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
               onClick={() => setAiOpen(o => !o)}
               aria-expanded={aiOpen}
               aria-controls="ai-fill-panel"
-              className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all mr-7 shadow-sm ${
+              className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 max-sm:py-2.5 max-sm:px-4 text-xs font-semibold transition-all mr-7 max-sm:mr-12 shadow-sm ${
                 aiOpen
                   ? 'bg-primary text-primary-foreground ring-2 ring-primary/30'
                   : 'bg-primary/10 text-primary border border-primary/30 hover:bg-primary/15 hover:border-primary/50'
@@ -787,7 +833,7 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex flex-1 flex-col min-h-0 min-w-0">
+        <form onSubmit={handleSubmit} className="flex flex-1 flex-col min-h-0 min-w-0 max-sm:[&_input]:h-11">
           <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-4 space-y-4 min-w-0">
             {(() => {
               const renderField = (k: string) => {
@@ -885,10 +931,11 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
               <span className="min-w-0 break-words">{submitError}</span>
             </div>
           )}
-          <DialogFooter className="sticky bottom-0 border-t bg-background/95 backdrop-blur px-6 py-3 gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>Abbrechen</Button>
+          <DialogFooter className="sticky bottom-0 border-t bg-background/95 backdrop-blur px-6 py-3 gap-2 max-sm:flex-row">
+            <Button type="button" variant="outline" onClick={onClose} className="max-sm:h-12 max-sm:flex-1 max-sm:text-base">Abbrechen</Button>
             <Button
               type="submit"
+              className="max-sm:h-12 max-sm:flex-1 max-sm:text-base"
               disabled={saving || !isDirty}
             >
               {saving ? 'Speichern...' : defaultValues ? 'Speichern' : 'Erstellen'}
@@ -897,6 +944,25 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
         </form>
       </DialogContent>
     </Dialog>
+    {createRaeumeUndOrteOpen && (
+      <RaeumeUndOrteDialog
+        open={createRaeumeUndOrteOpen}
+        onClose={() => setCreateRaeumeUndOrteOpen(false)}
+        onSubmit={async (newFields) => {
+          const result = await LivingAppsService.createRaeumeUndOrteEntry(newFields as any) as { id?: string };
+          if (result?.id) {
+            const newRec = { record_id: result.id, fields: newFields } as unknown as RaeumeUndOrte;
+            setExtraRaeumeUndOrte(prev => [...prev, newRec]);
+            const url = createRecordUrl(APP_IDS.RAEUME_UND_ORTE, result.id);
+            setFields(prev => ({ ...prev, [createRaeumeUndOrteField]: url } as any));
+          }
+          setCreateRaeumeUndOrteOpen(false);
+        }}
+        defaultValues={createRaeumeUndOrteInitial
+          ? ({ raumname: createRaeumeUndOrteInitial } as any)
+          : undefined}
+      />
+    )}
     {createKurseOpen && (
       <KurseDialog
         open={createKurseOpen}

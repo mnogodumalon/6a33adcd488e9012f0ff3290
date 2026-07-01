@@ -144,7 +144,7 @@ export default function PublicFormAnmeldungen() {
               value={lookupKey(fields.status) ?? ''}
               onValueChange={v => setFields(f => ({ ...f, status: v === 'none' ? undefined : v as any }))}
             >
-              <SelectTrigger id="status"><SelectValue placeholder="" /></SelectTrigger>
+              <SelectTrigger id="status" className="max-sm:h-11"><SelectValue placeholder="" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">—</SelectItem>
                 <SelectItem value="vorgemerkt">Vorgemerkt</SelectItem>

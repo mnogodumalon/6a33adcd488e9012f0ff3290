@@ -41,19 +41,43 @@ if (/onCardMove|onEventDrop|onEventResize/.test(src) && !src.includes('undoToast
 }
 
 // 5. Record clicks open the overlay
-if (/onCardClick|onEventClick/.test(src) && !src.includes('<RecordOverlay')) {
-  errors.push('onCardClick/onEventClick wired but no <RecordOverlay> — every record click opens the overlay (RecordView HARD RULE).');
+if (/onCardClick|onEventClick|onMarkerClick/.test(src) && !src.includes('<RecordOverlay')) {
+  errors.push('onCardClick/onEventClick/onMarkerClick wired but no <RecordOverlay> — every record click opens the overlay (RecordView HARD RULE).');
 }
 
 // 6. Unguarded parseISO on optional record fields — the sandbox build does NOT
 // enforce strictNullChecks, so parseISO(undefined) crashes at RUNTIME
 // ("Cannot read properties of undefined (reading 'split')"), taking the whole
 // dashboard down for one record with a missing date.
-const unguardedParseISO = src.split('\n')
-  .map((line, i) => ({ line, n: i + 1 }))
-  .filter(({ line }) => /parseISO\(\s*[\w$]+\.fields\.\w+\s*\)/.test(line) && !/[!?]|&&/.test(line));
-for (const { n } of unguardedParseISO) {
-  errors.push(`Line ${n}: parseISO(x.fields.…) without a guard — one record with a missing date crashes the page. Pre-filter the chain (.filter(r => !!r.fields.X)) and assert with r.fields.X!, or guard inline (r.fields.X ? … : …).`);
+// A parseISO(x.fields.FIELD) is safe when the SAME field is guarded — three
+// shapes count, so the natural readable patterns don't trip the gate:
+//   · inline on the same line:        x.fields.F ? parseISO(x.fields.F) : …   /  x.fields.F && …  /  x.fields.F!
+//   · early-return in the callback:   if (!x.fields.F) return …; … parseISO(x.fields.F)
+//   · pre-filter up the chain:        .filter(r => !!r.fields.F) … parseISO(r.fields.F!)
+// Only a parseISO with NO guard on its field anywhere nearby is a real crash
+// risk (the sandbox build has no strictNullChecks → parseISO(undefined) throws
+// at runtime and takes the whole page down).
+const dashLines = src.split('\n');
+const unguardedParseISO = [];
+for (let i = 0; i < dashLines.length; i++) {
+  const line = dashLines[i];
+  const m = line.match(/parseISO\(\s*[\w$]+\.fields\.(\w+)\s*\)/);
+  if (!m) continue;
+  const field = m[1];
+  // (a) inline guard on the same line (?, !, &&)
+  if (/[!?]|&&/.test(line)) continue;
+  // (b) a guard on the SAME field within the preceding lines — an early-return
+  //     `if (!x.fields.F) …`, a ternary/&&, or a `.filter(… fields.F …)` that
+  //     pre-filtered the chain. Require both: the field is referenced AND a
+  //     guard token is present, so an unrelated mention doesn't wave it through.
+  const back = dashLines.slice(Math.max(0, i - 8), i).join('\n');
+  const fieldGuarded =
+    new RegExp(`\\.fields\\.${field}\\b`).test(back) && /(!|\?|&&|\breturn\b|\.filter\()/.test(back);
+  if (fieldGuarded) continue;
+  unguardedParseISO.push(i + 1);
+}
+for (const n of unguardedParseISO) {
+  errors.push(`Line ${n}: parseISO(x.fields.…) without a guard — one record with a missing date crashes the page. Guard inline (r.fields.X ? … : …), early-return (if (!r.fields.X) return …) before the parseISO, or pre-filter the chain (.filter(r => !!r.fields.X)) and assert with r.fields.X!.`);
 }
 
 // 7. Frozen clock

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { LivingAppsService, extractRecordId } from '@/services/livingAppsService';
-import type { Kurstermine, Kurse, Trainer } from '@/types/app';
+import type { Kurstermine, RaeumeUndOrte, Kurse, Trainer } from '@/types/app';
 import { APP_IDS } from '@/types/app';
 import { Button } from '@/components/ui/button';
 import { IconArrowLeft, IconTrash } from '@tabler/icons-react';
@@ -22,6 +22,7 @@ export default function KurstermineDetailPage() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [raeumeUndOrteList, setRaeumeUndOrteList] = useState<RaeumeUndOrte[]>([]);
   const [kurseList, setKurseList] = useState<Kurse[]>([]);
   const [trainerList, setTrainerList] = useState<Trainer[]>([]);
 
@@ -30,11 +31,13 @@ export default function KurstermineDetailPage() {
   async function loadData() {
     setLoading(true);
     try {
-      const [mainData, kurseData, trainerData] = await Promise.all([
+      const [mainData, raeumeUndOrteData, kurseData, trainerData] = await Promise.all([
         LivingAppsService.getKurstermine(),
+        LivingAppsService.getRaeumeUndOrte(),
         LivingAppsService.getKurse(),
         LivingAppsService.getTrainer(),
       ]);
+      setRaeumeUndOrteList(raeumeUndOrteData);
       setKurseList(kurseData);
       setTrainerList(trainerData);
       setRecord(mainData.find(r => r.record_id === id) ?? null);
@@ -55,6 +58,12 @@ export default function KurstermineDetailPage() {
     await LivingAppsService.deleteKurstermineEntry(record.record_id);
     setDeleteOpen(false);
     navigate('/kurstermine');
+  }
+
+  function getRaeumeUndOrteDisplayName(url?: unknown) {
+    if (!url) return '—';
+    const refId = extractRecordId(url);
+    return raeumeUndOrteList.find(r => r.record_id === refId)?.fields.raumname ?? '—';
   }
 
   function getKurseDisplayName(url?: unknown) {
@@ -98,6 +107,7 @@ export default function KurstermineDetailPage() {
 
       {(() => {
         const lookupLists: Record<string, unknown> = {
+          raum: raeumeUndOrteList,
           kurs: kurseList,
           trainer: trainerList,
         };
@@ -117,10 +127,11 @@ export default function KurstermineDetailPage() {
       })()}
 
       <RecordSection title="Details" cols={2}>
+        <RecordField label="Raum/Ort" value={getRaeumeUndOrteDisplayName(record.fields.raum)} format="text" />
         <RecordField label="Kurs" value={getKurseDisplayName(record.fields.kurs)} format="text" />
         <RecordField label="Startdatum und -uhrzeit" value={record.fields.startdatum} format="datetime" />
         <RecordField label="Enddatum und -uhrzeit" value={record.fields.enddatum} format="datetime" />
-        <RecordField label="Ort" value={record.fields.ort} format="text" />
+        <RecordField label="Ort (Freitext)" value={record.fields.ort} format="text" />
         <RecordField label="Online-Link" value={record.fields.online_link} format="url" />
         <RecordField label="Anmeldefrist" value={record.fields.anmeldefrist} format="date" />
         <RecordField label="Trainer" value={getTrainerDisplayName(record.fields.trainer)} format="text" />
@@ -143,6 +154,7 @@ export default function KurstermineDetailPage() {
         onSubmit={handleUpdate}
         defaultValues={record.fields}
         recordId={record.record_id}
+        raeumeUndOrteList={raeumeUndOrteList}
         kurseList={kurseList}
         trainerList={trainerList}
         enablePhotoScan={AI_PHOTO_SCAN['Kurstermine']}

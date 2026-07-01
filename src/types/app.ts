@@ -21,6 +21,39 @@ export interface AttachmentInput {
   active?: boolean;
 }
 
+export interface RaeumeUndOrte {
+  record_id: string;
+  createdat: string;
+  updatedat: string | null;
+  fields: {
+    raumname?: string;
+    strasse?: string;
+    hausnummer?: string;
+    plz?: string;
+    stadt?: string;
+    kapazitaet?: number;
+    ausstattung?: string;
+    raum_typ?: LookupValue;
+    status?: LookupValue;
+    online_raum?: LookupValue;
+    online_link?: string;
+    bemerkung?: string;
+  };
+}
+
+export interface Trainer {
+  record_id: string;
+  createdat: string;
+  updatedat: string | null;
+  fields: {
+    vorname?: string;
+    nachname?: string;
+    email?: string;
+    trainer_typ?: LookupValue;
+    fachgebiete?: string;
+  };
+}
+
 export interface Kurse {
   record_id: string;
   createdat: string;
@@ -38,16 +71,17 @@ export interface Kurse {
   };
 }
 
-export interface Trainer {
+export interface Anmeldungen {
   record_id: string;
   createdat: string;
   updatedat: string | null;
   fields: {
-    vorname?: string;
-    nachname?: string;
-    email?: string;
-    trainer_typ?: LookupValue;
-    fachgebiete?: string;
+    kurstermin?: string; // applookup -> URL zu 'Kurstermine' Record
+    kurs?: string; // applookup -> URL zu 'Kurse' Record
+    teilnehmer?: string; // applookup -> URL zu 'Teilnehmer' Record
+    anmeldedatum?: string; // Format: YYYY-MM-DD oder ISO String
+    status?: LookupValue;
+    bemerkung?: string;
   };
 }
 
@@ -70,6 +104,7 @@ export interface Kurstermine {
   createdat: string;
   updatedat: string | null;
   fields: {
+    raum?: string; // applookup -> URL zu 'RaeumeUndOrte' Record
     kurs?: string; // applookup -> URL zu 'Kurse' Record
     startdatum?: string; // Format: YYYY-MM-DD oder ISO String
     enddatum?: string; // Format: YYYY-MM-DD oder ISO String
@@ -82,50 +117,63 @@ export interface Kurstermine {
   };
 }
 
-export interface Anmeldungen {
-  record_id: string;
-  createdat: string;
-  updatedat: string | null;
-  fields: {
-    kurstermin?: string; // applookup -> URL zu 'Kurstermine' Record
-    kurs?: string; // applookup -> URL zu 'Kurse' Record
-    teilnehmer?: string; // applookup -> URL zu 'Teilnehmer' Record
-    anmeldedatum?: string; // Format: YYYY-MM-DD oder ISO String
-    status?: LookupValue;
-    bemerkung?: string;
-  };
-}
-
 export const APP_IDS = {
-  KURSE: '6a33ac97f71b811034a5f224',
+  RAEUME_UND_ORTE: '6a33afda2b58f2e41ee46836',
   TRAINER: '6a33ac9e6060014a70436880',
+  KURSE: '6a33ac97f71b811034a5f224',
+  ANMELDUNGEN: '6a33aca0e11531f0f32fe8a9',
   TEILNEHMER: '6a33ac9f9cf5d458275318aa',
   KURSTERMINE: '6a33ac9f436c052d056df9f7',
-  ANMELDUNGEN: '6a33aca0e11531f0f32fe8a9',
 } as const;
 
 
 export const LOOKUP_OPTIONS: Record<string, Record<string, {key: string, label: string}[]>> = {
+  'raeume_und_orte': {
+    raum_typ: [{ key: "intern", label: "Intern" }, { key: "extern", label: "Extern" }],
+    status: [{ key: "aktiv", label: "Aktiv" }, { key: "inaktiv", label: "Inaktiv" }],
+    online_raum: [{ key: "ja", label: "Ja" }, { key: "nein", label: "Nein" }],
+  },
+  'trainer': {
+    trainer_typ: [{ key: "intern", label: "Intern" }, { key: "extern", label: "Extern" }],
+  },
   'kurse': {
     kategorie: [{ key: "fachlich", label: "Fachlich" }, { key: "soft_skills", label: "Soft Skills" }, { key: "it", label: "IT" }, { key: "sonstiges", label: "Sonstiges" }],
     dauer_einheit: [{ key: "stunden", label: "Stunden" }, { key: "tage", label: "Tage" }],
     status: [{ key: "geplant", label: "Geplant" }, { key: "aktiv", label: "Aktiv" }, { key: "inaktiv", label: "Inaktiv" }, { key: "archiviert", label: "Archiviert" }],
   },
-  'trainer': {
-    trainer_typ: [{ key: "intern", label: "Intern" }, { key: "extern", label: "Extern" }],
+  'anmeldungen': {
+    status: [{ key: "vorgemerkt", label: "Vorgemerkt" }, { key: "angemeldet", label: "Angemeldet" }, { key: "warteliste", label: "Warteliste" }, { key: "storniert", label: "Storniert" }, { key: "teilgenommen", label: "Teilgenommen" }, { key: "nicht_erschienen", label: "Nicht erschienen" }],
   },
   'teilnehmer': {
-    aktiv_status: [{ key: "aktiv", label: "Aktiv" }, { key: "inaktiv", label: "Inaktiv" }],
+    aktiv_status: [{ key: "inaktiv", label: "Inaktiv" }, { key: "aktiv", label: "Aktiv" }],
   },
   'kurstermine': {
     status: [{ key: "geplant", label: "Geplant" }, { key: "offen", label: "Offen zur Anmeldung" }, { key: "voll", label: "Voll" }, { key: "durchgefuehrt", label: "Durchgeführt" }, { key: "abgesagt", label: "Abgesagt" }],
   },
-  'anmeldungen': {
-    status: [{ key: "vorgemerkt", label: "Vorgemerkt" }, { key: "angemeldet", label: "Angemeldet" }, { key: "warteliste", label: "Warteliste" }, { key: "storniert", label: "Storniert" }, { key: "teilgenommen", label: "Teilgenommen" }, { key: "nicht_erschienen", label: "Nicht erschienen" }],
-  },
 };
 
 export const FIELD_TYPES: Record<string, Record<string, string>> = {
+  'raeume_und_orte': {
+    'raumname': 'string/text',
+    'strasse': 'string/text',
+    'hausnummer': 'string/text',
+    'plz': 'string/text',
+    'stadt': 'string/text',
+    'kapazitaet': 'number',
+    'ausstattung': 'string/textarea',
+    'raum_typ': 'lookup/select',
+    'status': 'lookup/radio',
+    'online_raum': 'lookup/radio',
+    'online_link': 'string/url',
+    'bemerkung': 'string/textarea',
+  },
+  'trainer': {
+    'vorname': 'string/text',
+    'nachname': 'string/text',
+    'email': 'string/email',
+    'trainer_typ': 'lookup/radio',
+    'fachgebiete': 'string/textarea',
+  },
   'kurse': {
     'kurstitel': 'string/text',
     'kurzbeschreibung': 'string/textarea',
@@ -137,12 +185,13 @@ export const FIELD_TYPES: Record<string, Record<string, string>> = {
     'max_teilnehmer': 'number',
     'status': 'lookup/select',
   },
-  'trainer': {
-    'vorname': 'string/text',
-    'nachname': 'string/text',
-    'email': 'string/email',
-    'trainer_typ': 'lookup/radio',
-    'fachgebiete': 'string/textarea',
+  'anmeldungen': {
+    'kurstermin': 'applookup/select',
+    'kurs': 'applookup/select',
+    'teilnehmer': 'applookup/select',
+    'anmeldedatum': 'date/datetimeminute',
+    'status': 'lookup/select',
+    'bemerkung': 'string/textarea',
   },
   'teilnehmer': {
     'vorname': 'string/text',
@@ -153,6 +202,7 @@ export const FIELD_TYPES: Record<string, Record<string, string>> = {
     'aktiv_status': 'lookup/radio',
   },
   'kurstermine': {
+    'raum': 'applookup/select',
     'kurs': 'applookup/select',
     'startdatum': 'date/datetimeminute',
     'enddatum': 'date/datetimeminute',
@@ -163,14 +213,9 @@ export const FIELD_TYPES: Record<string, Record<string, string>> = {
     'max_teilnehmer_abweichend': 'number',
     'status': 'lookup/select',
   },
-  'anmeldungen': {
-    'kurstermin': 'applookup/select',
-    'kurs': 'applookup/select',
-    'teilnehmer': 'applookup/select',
-    'anmeldedatum': 'date/datetimeminute',
-    'status': 'lookup/select',
-    'bemerkung': 'string/textarea',
-  },
+};
+
+export const HUB_TOPOLOGY: Record<string, { field: string; entity: string }[]> = {
 };
 
 type StripLookup<T> = {
@@ -180,8 +225,9 @@ type StripLookup<T> = {
 };
 
 // Helper Types for creating new records (lookup fields as plain strings for API)
-export type CreateKurse = StripLookup<Kurse['fields']>;
+export type CreateRaeumeUndOrte = StripLookup<RaeumeUndOrte['fields']>;
 export type CreateTrainer = StripLookup<Trainer['fields']>;
+export type CreateKurse = StripLookup<Kurse['fields']>;
+export type CreateAnmeldungen = StripLookup<Anmeldungen['fields']>;
 export type CreateTeilnehmer = StripLookup<Teilnehmer['fields']>;
 export type CreateKurstermine = StripLookup<Kurstermine['fields']>;
-export type CreateAnmeldungen = StripLookup<Anmeldungen['fields']>;

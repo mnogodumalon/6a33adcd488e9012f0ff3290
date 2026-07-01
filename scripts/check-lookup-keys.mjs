@@ -29,6 +29,14 @@ const VALID_KEYS = {
     "soft_skills",
     "sonstiges"
   ],
+  "online_raum": [
+    "ja",
+    "nein"
+  ],
+  "raum_typ": [
+    "extern",
+    "intern"
+  ],
   "status": [
     "abgesagt",
     "aktiv",

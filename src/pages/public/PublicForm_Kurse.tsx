@@ -160,7 +160,7 @@ export default function PublicFormKurse() {
                 role="radio"
                 aria-checked={lookupKey(fields.kategorie) === 'fachlich'}
                 onClick={() => setFields(f => ({ ...f, kategorie: (lookupKey(f.kategorie) === 'fachlich' ? undefined : 'fachlich') as any }))}
-                className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
                   lookupKey(fields.kategorie) === 'fachlich'
                     ? 'bg-foreground text-background border-foreground'
                     : 'bg-background text-foreground border-input hover:bg-accent'
@@ -173,7 +173,7 @@ export default function PublicFormKurse() {
                 role="radio"
                 aria-checked={lookupKey(fields.kategorie) === 'soft_skills'}
                 onClick={() => setFields(f => ({ ...f, kategorie: (lookupKey(f.kategorie) === 'soft_skills' ? undefined : 'soft_skills') as any }))}
-                className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
                   lookupKey(fields.kategorie) === 'soft_skills'
                     ? 'bg-foreground text-background border-foreground'
                     : 'bg-background text-foreground border-input hover:bg-accent'
@@ -186,7 +186,7 @@ export default function PublicFormKurse() {
                 role="radio"
                 aria-checked={lookupKey(fields.kategorie) === 'it'}
                 onClick={() => setFields(f => ({ ...f, kategorie: (lookupKey(f.kategorie) === 'it' ? undefined : 'it') as any }))}
-                className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
                   lookupKey(fields.kategorie) === 'it'
                     ? 'bg-foreground text-background border-foreground'
                     : 'bg-background text-foreground border-input hover:bg-accent'
@@ -199,7 +199,7 @@ export default function PublicFormKurse() {
                 role="radio"
                 aria-checked={lookupKey(fields.kategorie) === 'sonstiges'}
                 onClick={() => setFields(f => ({ ...f, kategorie: (lookupKey(f.kategorie) === 'sonstiges' ? undefined : 'sonstiges') as any }))}
-                className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
                   lookupKey(fields.kategorie) === 'sonstiges'
                     ? 'bg-foreground text-background border-foreground'
                     : 'bg-background text-foreground border-input hover:bg-accent'
@@ -229,7 +229,7 @@ export default function PublicFormKurse() {
                 role="radio"
                 aria-checked={lookupKey(fields.dauer_einheit) === 'stunden'}
                 onClick={() => setFields(f => ({ ...f, dauer_einheit: (lookupKey(f.dauer_einheit) === 'stunden' ? undefined : 'stunden') as any }))}
-                className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
                   lookupKey(fields.dauer_einheit) === 'stunden'
                     ? 'bg-foreground text-background border-foreground'
                     : 'bg-background text-foreground border-input hover:bg-accent'
@@ -242,7 +242,7 @@ export default function PublicFormKurse() {
                 role="radio"
                 aria-checked={lookupKey(fields.dauer_einheit) === 'tage'}
                 onClick={() => setFields(f => ({ ...f, dauer_einheit: (lookupKey(f.dauer_einheit) === 'tage' ? undefined : 'tage') as any }))}
-                className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
                   lookupKey(fields.dauer_einheit) === 'tage'
                     ? 'bg-foreground text-background border-foreground'
                     : 'bg-background text-foreground border-input hover:bg-accent'
@@ -281,7 +281,7 @@ export default function PublicFormKurse() {
                 role="radio"
                 aria-checked={lookupKey(fields.status) === 'geplant'}
                 onClick={() => setFields(f => ({ ...f, status: (lookupKey(f.status) === 'geplant' ? undefined : 'geplant') as any }))}
-                className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
                   lookupKey(fields.status) === 'geplant'
                     ? 'bg-foreground text-background border-foreground'
                     : 'bg-background text-foreground border-input hover:bg-accent'
@@ -294,7 +294,7 @@ export default function PublicFormKurse() {
                 role="radio"
                 aria-checked={lookupKey(fields.status) === 'aktiv'}
                 onClick={() => setFields(f => ({ ...f, status: (lookupKey(f.status) === 'aktiv' ? undefined : 'aktiv') as any }))}
-                className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
                   lookupKey(fields.status) === 'aktiv'
                     ? 'bg-foreground text-background border-foreground'
                     : 'bg-background text-foreground border-input hover:bg-accent'
@@ -307,7 +307,7 @@ export default function PublicFormKurse() {
                 role="radio"
                 aria-checked={lookupKey(fields.status) === 'inaktiv'}
                 onClick={() => setFields(f => ({ ...f, status: (lookupKey(f.status) === 'inaktiv' ? undefined : 'inaktiv') as any }))}
-                className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
                   lookupKey(fields.status) === 'inaktiv'
                     ? 'bg-foreground text-background border-foreground'
                     : 'bg-background text-foreground border-input hover:bg-accent'
@@ -320,7 +320,7 @@ export default function PublicFormKurse() {
                 role="radio"
                 aria-checked={lookupKey(fields.status) === 'archiviert'}
                 onClick={() => setFields(f => ({ ...f, status: (lookupKey(f.status) === 'archiviert' ? undefined : 'archiviert') as any }))}
-                className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
                   lookupKey(fields.status) === 'archiviert'
                     ? 'bg-foreground text-background border-foreground'
                     : 'bg-background text-foreground border-input hover:bg-accent'

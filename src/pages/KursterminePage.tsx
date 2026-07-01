@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LivingAppsService, extractRecordId, createRecordUrl } from '@/services/livingAppsService';
-import type { Kurstermine, Kurse, Trainer } from '@/types/app';
+import type { Kurstermine, RaeumeUndOrte, Kurse, Trainer } from '@/types/app';
 import { APP_IDS } from '@/types/app';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,6 +33,7 @@ export default function KursterminePage() {
   const [deleteTarget, setDeleteTarget] = useState<Kurstermine | null>(null);
   const [sortKey, setSortKey] = useState('');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [raeumeUndOrteList, setRaeumeUndOrteList] = useState<RaeumeUndOrte[]>([]);
   const [kurseList, setKurseList] = useState<Kurse[]>([]);
   const [trainerList, setTrainerList] = useState<Trainer[]>([]);
 
@@ -41,12 +42,14 @@ export default function KursterminePage() {
   async function loadData() {
     setLoading(true);
     try {
-      const [mainData, kurseData, trainerData] = await Promise.all([
+      const [mainData, raeumeUndOrteData, kurseData, trainerData] = await Promise.all([
         LivingAppsService.getKurstermine(),
+        LivingAppsService.getRaeumeUndOrte(),
         LivingAppsService.getKurse(),
         LivingAppsService.getTrainer(),
       ]);
       setRecords(mainData);
+      setRaeumeUndOrteList(raeumeUndOrteData);
       setKurseList(kurseData);
       setTrainerList(trainerData);
     } finally {
@@ -72,6 +75,12 @@ export default function KursterminePage() {
     await LivingAppsService.deleteKurstermineEntry(deleteTarget.record_id);
     setRecords(prev => prev.filter(r => r.record_id !== deleteTarget.record_id));
     setDeleteTarget(null);
+  }
+
+  function getRaeumeUndOrteDisplayName(url?: unknown) {
+    if (!url) return '—';
+    const id = extractRecordId(url);
+    return raeumeUndOrteList.find(r => r.record_id === id)?.fields.raumname ?? '—';
   }
 
   function getKurseDisplayName(url?: unknown) {
@@ -149,6 +158,12 @@ export default function KursterminePage() {
         <Table className="[&_tbody_td]:px-6 [&_tbody_td]:py-2 [&_tbody_td]:text-base [&_tbody_td]:font-medium [&_tbody_tr:first-child_td]:pt-6 [&_tbody_tr:last-child_td]:pb-10">
           <TableHeader className="bg-secondary">
             <TableRow className="border-b border-input">
+              <TableHead className="uppercase text-xs font-semibold text-secondary-foreground tracking-wider px-6 cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => toggleSort('raum')}>
+                <span className="inline-flex items-center gap-1">
+                  Raum/Ort
+                  {sortKey === 'raum' ? (sortDir === 'asc' ? <IconArrowUp size={14} /> : <IconArrowDown size={14} />) : <IconArrowsUpDown size={14} className="opacity-30" />}
+                </span>
+              </TableHead>
               <TableHead className="uppercase text-xs font-semibold text-secondary-foreground tracking-wider px-6 cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => toggleSort('kurs')}>
                 <span className="inline-flex items-center gap-1">
                   Kurs
@@ -169,7 +184,7 @@ export default function KursterminePage() {
               </TableHead>
               <TableHead className="uppercase text-xs font-semibold text-secondary-foreground tracking-wider px-6 cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => toggleSort('ort')}>
                 <span className="inline-flex items-center gap-1">
-                  Ort
+                  Ort (Freitext)
                   {sortKey === 'ort' ? (sortDir === 'asc' ? <IconArrowUp size={14} /> : <IconArrowDown size={14} />) : <IconArrowsUpDown size={14} className="opacity-30" />}
                 </span>
               </TableHead>
@@ -209,6 +224,7 @@ export default function KursterminePage() {
           <TableBody>
             {sortRecords(filtered).map(record => (
               <TableRow key={record.record_id} className="hover:bg-muted/50 transition-colors cursor-pointer" onClick={(e) => { if ((e.target as HTMLElement).closest('button, [role="checkbox"]')) return; navigate(`/kurstermine/${record.record_id}`); }}>
+                <TableCell><span className="inline-flex items-center bg-secondary border border-[#bfdbfe] text-[#2563eb] rounded-[10px] px-2 py-1 text-sm font-medium">{getRaeumeUndOrteDisplayName(record.fields.raum)}</span></TableCell>
                 <TableCell><span className="inline-flex items-center bg-secondary border border-[#bfdbfe] text-[#2563eb] rounded-[10px] px-2 py-1 text-sm font-medium">{getKurseDisplayName(record.fields.kurs)}</span></TableCell>
                 <TableCell className="text-muted-foreground">{formatDate(record.fields.startdatum)}</TableCell>
                 <TableCell className="text-muted-foreground">{formatDate(record.fields.enddatum)}</TableCell>
@@ -232,7 +248,7 @@ export default function KursterminePage() {
             ))}
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-16 text-muted-foreground">
+                <TableCell colSpan={11} className="text-center py-16 text-muted-foreground">
                   {search ? 'Keine Ergebnisse gefunden.' : 'Noch keine Kurstermine. Jetzt hinzufügen!'}
                 </TableCell>
               </TableRow>
@@ -247,6 +263,7 @@ export default function KursterminePage() {
         onSubmit={editingRecord ? handleUpdate : handleCreate}
         defaultValues={editingRecord?.fields}
         recordId={editingRecord?.record_id}
+        raeumeUndOrteList={raeumeUndOrteList}
         kurseList={kurseList}
         trainerList={trainerList}
         enablePhotoScan={AI_PHOTO_SCAN['Kurstermine']}

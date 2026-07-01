@@ -1,4 +1,4 @@
-import type { Kurstermine, Kurse, Trainer } from '@/types/app';
+import type { Kurstermine, RaeumeUndOrte, Kurse, Trainer } from '@/types/app';
 import { extractRecordId } from '@/services/livingAppsService';
 import {
   Dialog, DialogContent, DialogHeader,
@@ -23,11 +23,18 @@ interface KurstermineViewDialogProps {
   onClose: () => void;
   record: Kurstermine | null;
   onEdit: (record: Kurstermine) => void;
+  raeumeUndOrteList: RaeumeUndOrte[];
   kurseList: Kurse[];
   trainerList: Trainer[];
 }
 
-export function KurstermineViewDialog({ open, onClose, record, onEdit, kurseList, trainerList }: KurstermineViewDialogProps) {
+export function KurstermineViewDialog({ open, onClose, record, onEdit, raeumeUndOrteList, kurseList, trainerList }: KurstermineViewDialogProps) {
+  function getRaeumeUndOrteDisplayName(url?: unknown) {
+    if (!url) return '—';
+    const id = extractRecordId(url);
+    return raeumeUndOrteList.find(r => r.record_id === id)?.fields.raumname ?? '—';
+  }
+
   function getKurseDisplayName(url?: unknown) {
     if (!url) return '—';
     const id = extractRecordId(url);
@@ -57,6 +64,10 @@ export function KurstermineViewDialog({ open, onClose, record, onEdit, kurseList
 
         <div className="space-y-4">
           <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Raum/Ort</Label>
+            <p className="text-sm">{getRaeumeUndOrteDisplayName(record.fields.raum)}</p>
+          </div>
+          <div className="space-y-1">
             <Label className="text-xs text-muted-foreground">Kurs</Label>
             <p className="text-sm">{getKurseDisplayName(record.fields.kurs)}</p>
           </div>
@@ -69,7 +80,7 @@ export function KurstermineViewDialog({ open, onClose, record, onEdit, kurseList
             <p className="text-sm">{formatDate(record.fields.enddatum)}</p>
           </div>
           <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Ort</Label>
+            <Label className="text-xs text-muted-foreground">Ort (Freitext)</Label>
             <p className="text-sm">{record.fields.ort ?? '—'}</p>
           </div>
           <div className="space-y-1">

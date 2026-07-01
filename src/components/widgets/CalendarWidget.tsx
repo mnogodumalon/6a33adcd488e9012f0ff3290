@@ -1,7 +1,14 @@
 /**
  * CalendarWidget — pre-generated calendar widget set (Archetype B).
  *
- * @version 2.9.2
+ * @version 2.10.0
+ * @since 2026-06-30  (2.10.0: POINT-CREATE — when only `onEmptyClick` is wired
+ *                     (a single date field: a start, no end), a drag no longer
+ *                     draws a start→end range it cannot store. It scrubs ONLY
+ *                     the start under the pointer (a zero-length phantom) and,
+ *                     on release, commits that start via onEmptyClick — the same
+ *                     path a tap takes. `onRangeCreate` (start+end fields) is
+ *                     unchanged and takes precedence when both are wired.
  * @since 2026-06-12  (2.9.2: FIT-TO-VIEWPORT, corrected — the WHOLE widget
  *                     card (toolbar + day heads + grid) now fits inside the
  *                     viewport height: the grid budget is viewport minus the
@@ -147,7 +154,11 @@
  *                                                              (ResourceTimeline supplies the resource row); HERE `group` is
  *                                                              ALWAYS undefined — the calendar has no second axis. In the hour
  *                                                              grid the Date carries the clicked CLOCK TIME (Y → snapped minute);
- *                                                              in month/board it is midnight (day only).
+ *                                                              in month/board it is midnight (day only). POINT-CREATE: if you wire
+ *                                                              this but NOT onRangeCreate (a single date field — a start, no end),
+ *                                                              a drag-to-create scrubs ONLY the start and fires THIS callback on
+ *                                                              release. Use it for single-date entities; use onRangeCreate when
+ *                                                              the entity has a separate start AND end field.
  *     onEventDrop?           (eventId, newStart, newEnd?) => void | string | Promise<void | string>  — reschedule; DRAG IS OFF until you
  *                                                              pass this (consumer PATCHes + re-fetches). In the hour grid newStart
  *                                                              carries the dropped clock time; month/board stay day-granular.
@@ -158,8 +169,10 @@
  *                                                              REJECTION CHANNEL (both drop + resize): return a STRING to block the
  *                                                              gesture — the widget snaps back and shows the reason in its built-in
  *                                                              notice. Check the rule FIRST, return the message INSTEAD of patching.
- *     onRangeCreate?         (start: Date, end: Date, group?: string) => void  — DRAG-TO-CREATE on empty space; OFF until you
- *                                                              pass this (a plain tap still fires onEmptyClick). Month: drag across
+ *     onRangeCreate?         (start: Date, end: Date, group?: string) => void  — DRAG-TO-CREATE a start→end RANGE on empty space;
+ *                                                              for an entity with a SEPARATE start AND end field. OFF until you
+ *                                                              pass this (a plain tap still fires onEmptyClick; a single date field
+ *                                                              should wire onEmptyClick for point-create instead). Month: drag across
  *                                                              cells → day range, midnights, end day INCLUSIVE (like an all-day
  *                                                              event). Hour grid: drag vertically → clock times, snapped to
  *                                                              dragSnapMinutes, min one snap step. Fires DATES (like onEmptyClick),
@@ -217,9 +230,16 @@
  *    reason — the user sees a widget that disobeys for no visible cause. And
  *    the inverse: returning the string AND rendering your own banner = double
  *    notice. Return the string; the widget owns the display.
- *  • treating `onRangeCreate`'s args like onEventDrop's — they are DATES, not ISO
- *    strings. Format them yourself (`format(start, 'yyyy-MM-dd')` for date/date,
- *    ISO_T-style for datetimeminute); writing the Date object raw fails the API.
+ *  • DROPPING THE CLOCK TIME on create — the #1 calendar-create bug. onEmptyClick
+ *    AND onRangeCreate hand you a Date that, IN THE HOUR GRID (week/day view),
+ *    carries the CLICKED TIME. Format it ONTO THE FIELD TYPE before writing:
+ *      – date-only field  (`date/date`)          → `format(d, 'yyyy-MM-dd')`
+ *      – datetime field   (`date/datetimeminute`)→ `format(d, "yyyy-MM-dd'T'HH:mm")`
+ *    (the scaffold DatePicker round-trips EXACTLY these formats). Using
+ *    `'yyyy-MM-dd'` for a datetime field silently pins every new record to 00:00 —
+ *    if "the clicked time is lost / always midnight", THIS is why. (The args are
+ *    DATES, not ISO strings like onEventDrop; writing the Date object raw also
+ *    fails the API.)
  *
  * ─── When to use ──────────────────────────────────────────────────────
  *
@@ -700,7 +720,15 @@ function useEventDrag(
   onEventResize?: ViewContext['onEventResize'],
   onRangeCreate?: ViewContext['onRangeCreate'],
   dragSnapMinutes = 15,
+  onEmptyClick?: ViewContext['onEmptyClick'],
 ) {
+  // POINT-CREATE: a single-date entity (only a start field, no end) wires
+  // `onEmptyClick` but NOT `onRangeCreate`. Then a drag must NOT draw a
+  // start→end range it cannot store — it scrubs ONLY the start under the
+  // pointer (a zero-length phantom) and, on release, commits that start via
+  // onEmptyClick (the same path a tap takes). `onRangeCreate` (start+end
+  // fields) keeps the range behaviour and wins when both are wired.
+  const pointCreate = !onRangeCreate && !!onEmptyClick;
   // Resolve the live preview from the cursor. Pure geometry + date math; sets no
   // app state — only the local preview/highlight the views paint. Returns the
   // snapped {start,end} or null when the cursor is off any cell. (A plain
@@ -717,16 +745,22 @@ function useEventDrag(
       // Drag-to-create: the phantom event's `start` is the ANCHOR (where the
       // gesture began); the cursor sets the other edge. Hour grid → clock
       // times (min one snap step); month → day range (end day inclusive).
+      // POINT-CREATE (single date field): there is no end to set — the phantom
+      // is a ZERO-LENGTH marker that simply FOLLOWS the cursor, so the user
+      // scrubs only the start. It renders as a min-height block / single-day chip.
       const anchor = eventStart(ev);
       if (minute != null) {
         const cur = setMinutesOfDay(startOfDay(day), minute);
+        if (pointCreate) return { id: CREATE_ID, start: cur, end: cur, allDay: false, mode: g.mode };
         const lo = minDate([anchor, cur]);
         let hi = maxDate([anchor, cur]);
         const snap = Math.max(1, dragSnapMinutes);
         if (differenceInMinutes(hi, lo) < snap) hi = addMinutes(lo, snap);
         return { id: CREATE_ID, start: lo, end: hi, allDay: false, mode: g.mode };
       }
-      const a = startOfDay(anchor), d = startOfDay(day);
+      const d = startOfDay(day);
+      if (pointCreate) return { id: CREATE_ID, start: d, end: d, allDay: true, mode: g.mode };
+      const a = startOfDay(anchor);
       return { id: CREATE_ID, start: minDate([a, d]), end: maxDate([a, d]), allDay: true, mode: g.mode };
     }
 
@@ -778,7 +812,7 @@ function useEventDrag(
   return usePointerDrag<CalendarEvent, Geometry, DragPreview>({
     moveEnabled: !!onEventDrop,
     resizeEnabled: !!onEventResize,
-    createEnabled: !!onRangeCreate,
+    createEnabled: !!onRangeCreate || !!onEmptyClick,
     grabDayAt: (geom, clientX, clientY) => geom.dayAt(clientX, clientY),
     resolve,
     targetKey: p => format(p.start, 'yyyy-MM-dd'),   // "yyyy-MM-dd" cell to highlight
@@ -791,6 +825,9 @@ function useEventDrag(
       if (g.mode === 'create') {
         // Drag-to-create commits DATES (like onEmptyClick) — the consumer
         // formats onto its field type. `group` stays undefined (no second axis).
+        // POINT-CREATE: only the start exists — commit it through onEmptyClick,
+        // the same path a tap takes, so a single-date entity never gets an end.
+        if (pointCreate) { onEmptyClick?.(p.start); return; }
         onRangeCreate?.(p.start, p.end);
         return;
       }
@@ -829,7 +866,7 @@ function DragGhost({ dnd, events }: { dnd: EventDrag; events: CalendarEvent[] })
   if (!ev) return null;
   const tone = ev.tone ?? 'default';
   return createPortal(
-    <div ref={dnd.ghostRef} className="pointer-events-none fixed left-0 top-0 z-[100] will-change-transform" aria-hidden>
+    <div ref={dnd.ghostRef} className="pointer-events-none fixed left-0 top-0 z-[var(--z-drag)] will-change-transform" aria-hidden>
       <div className={`flex max-w-[240px] items-center gap-1.5 rounded-md px-2 py-1 text-xs font-semibold shadow-xl ring-1 ring-black/10 ${TONE_BAR[tone]}`}>
         {!isAllDay(ev) && <span className="shrink-0 tabular-nums opacity-80">{format(eventStart(ev), 'HH:mm')}</span>}
         <span className="truncate">{ev.title}</span>
@@ -848,7 +885,7 @@ function setMinutesOfDay(day: Date, minute: number): Date {
 
 function MonthView(ctx: ViewContext) {
   const { events, cursor, weekStartsOn, locale, maxEventsPerDay } = ctx;
-  const dnd = useEventDrag(ctx.onEventDrop, undefined, ctx.onRangeCreate, ctx.dragSnapMinutes);
+  const dnd = useEventDrag(ctx.onEventDrop, undefined, ctx.onRangeCreate, ctx.dragSnapMinutes, ctx.onEmptyClick);
   const ghost = <DragGhost dnd={dnd} events={events} />;
 
   const days = useMemo(() => {
@@ -1173,7 +1210,7 @@ function WeekView(ctx: ViewContext) {
   // start decides the resolution: all-day strip chips capture a day-granular
   // geometry (minuteAt null); hour-grid events capture a time-aware geometry
   // (Y → snapped minute). Both coexist without touching each other.
-  const dnd = useEventDrag(ctx.onEventDrop, ctx.onEventResize, ctx.onRangeCreate, ctx.dragSnapMinutes);
+  const dnd = useEventDrag(ctx.onEventDrop, ctx.onEventResize, ctx.onRangeCreate, ctx.dragSnapMinutes, ctx.onEmptyClick);
   const ghost = <DragGhost dnd={dnd} events={events} />;
   const days = useMemo(() => {
     // Phone layout: a 3-DAY WINDOW anchored at the cursor (the shell's nav
@@ -1475,7 +1512,9 @@ function WeekDayColumn({ day, events, ctx, dnd, geom, colRefs, hours, hourPx, da
   const previewTop = preview ? (differenceInMinutes(preview.start, dayStart) / 60) * hourPx : 0;
   const previewHeight = preview ? Math.max(18, (differenceInMinutes(preview.end, preview.start) / 60) * hourPx) : 18;
   const previewLabel = preview
-    ? (preview.mode === 'move' ? format(preview.start, 'HH:mm') : `${format(preview.start, 'HH:mm')}–${format(preview.end, 'HH:mm')}`)
+    ? (preview.mode === 'move' || differenceInMinutes(preview.end, preview.start) <= 0
+        ? format(preview.start, 'HH:mm')   // move OR point-create (zero-span) → just the start
+        : `${format(preview.start, 'HH:mm')}–${format(preview.end, 'HH:mm')}`)
     : '';
 
   return (

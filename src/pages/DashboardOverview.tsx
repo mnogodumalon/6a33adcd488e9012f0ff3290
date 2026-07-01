@@ -47,14 +47,14 @@ export default function DashboardOverview() {
   const {
     kurse, trainer, teilnehmer, kurstermine, anmeldungen,
     setKurstermine, setAnmeldungen,
-    kurseMap, trainerMap, teilnehmerMap, kurstermineMap,
+    kurseMap, trainerMap, teilnehmerMap, kurstermineMap, raeumeUndOrteMap, raeumeUndOrte,
     loading, error, fetchAll,
   } = useDashboardData();
 
   // ALL hooks before any early returns
   const enrichedKurstermine = useMemo(
-    () => enrichKurstermine(kurstermine, { kurseMap, trainerMap }),
-    [kurstermine, kurseMap, trainerMap]
+    () => enrichKurstermine(kurstermine, { kurseMap, trainerMap, raeumeUndOrteMap }),
+    [kurstermine, kurseMap, trainerMap, raeumeUndOrteMap]
   );
   const enrichedAnmeldungen = useMemo(
     () => enrichAnmeldungen(anmeldungen, { kurstermineMap, kurseMap, teilnehmerMap }),
@@ -496,6 +496,7 @@ export default function DashboardOverview() {
         recordId={editingTermin?.record_id}
         kurseList={kurse}
         trainerList={trainer}
+        raeumeUndOrteList={raeumeUndOrte}
         enablePhotoScan={AI_PHOTO_SCAN['Kurstermine']}
         enablePhotoLocation={AI_PHOTO_LOCATION['Kurstermine']}
       />

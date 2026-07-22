@@ -2,6 +2,37 @@
   "version": 1,
   "forms": [
     {
+      "entity": "trainer",
+      "app_id": "6a33ac9e6060014a70436880",
+      "path": "/rest/apps/6a33ac9e6060014a70436880/records",
+      "allowed_fields": [
+        "vorname",
+        "nachname",
+        "email",
+        "trainer_typ",
+        "fachgebiete"
+      ],
+      "pow": true,
+      "pow_difficulty": 50000,
+      "title": "Trainer — Formular"
+    },
+    {
+      "entity": "teilnehmer",
+      "app_id": "6a33ac9f9cf5d458275318aa",
+      "path": "/rest/apps/6a33ac9f9cf5d458275318aa/records",
+      "allowed_fields": [
+        "vorname",
+        "nachname",
+        "email",
+        "firma_abteilung",
+        "rolle",
+        "aktiv_status"
+      ],
+      "pow": true,
+      "pow_difficulty": 50000,
+      "title": "Teilnehmer — Formular"
+    },
+    {
       "entity": "raeume_und_orte",
       "app_id": "6a33afda2b58f2e41ee46836",
       "path": "/rest/apps/6a33afda2b58f2e41ee46836/records",
@@ -24,19 +55,21 @@
       "title": "Räume und Orte — Formular"
     },
     {
-      "entity": "trainer",
-      "app_id": "6a33ac9e6060014a70436880",
-      "path": "/rest/apps/6a33ac9e6060014a70436880/records",
+      "entity": "kurstermine",
+      "app_id": "6a33ac9f436c052d056df9f7",
+      "path": "/rest/apps/6a33ac9f436c052d056df9f7/records",
       "allowed_fields": [
-        "vorname",
-        "nachname",
-        "email",
-        "trainer_typ",
-        "fachgebiete"
+        "startdatum",
+        "enddatum",
+        "ort",
+        "online_link",
+        "anmeldefrist",
+        "max_teilnehmer_abweichend",
+        "status"
       ],
       "pow": true,
       "pow_difficulty": 50000,
-      "title": "Trainer — Formular"
+      "title": "Kurstermine — Formular"
     },
     {
       "entity": "kurse",
@@ -69,39 +102,6 @@
       "pow": true,
       "pow_difficulty": 50000,
       "title": "Anmeldungen — Formular"
-    },
-    {
-      "entity": "teilnehmer",
-      "app_id": "6a33ac9f9cf5d458275318aa",
-      "path": "/rest/apps/6a33ac9f9cf5d458275318aa/records",
-      "allowed_fields": [
-        "vorname",
-        "nachname",
-        "email",
-        "firma_abteilung",
-        "rolle",
-        "aktiv_status"
-      ],
-      "pow": true,
-      "pow_difficulty": 50000,
-      "title": "Teilnehmer — Formular"
-    },
-    {
-      "entity": "kurstermine",
-      "app_id": "6a33ac9f436c052d056df9f7",
-      "path": "/rest/apps/6a33ac9f436c052d056df9f7/records",
-      "allowed_fields": [
-        "startdatum",
-        "enddatum",
-        "ort",
-        "online_link",
-        "anmeldefrist",
-        "max_teilnehmer_abweichend",
-        "status"
-      ],
-      "pow": true,
-      "pow_difficulty": 50000,
-      "title": "Kurstermine — Formular"
     }
   ]
 }

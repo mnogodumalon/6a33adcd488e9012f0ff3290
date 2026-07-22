@@ -124,12 +124,13 @@ export default function PublicFormRaeumeUndOrte() {
 
         <form onSubmit={handleSubmit} className="space-y-5 bg-card rounded-xl border border-border p-6 shadow-md">
           <div className="space-y-2">
-            <Label htmlFor="raumname">Name des Raums/Orts</Label>
+            <Label htmlFor="raumname">Name des Raums/Orts *</Label>
             <Input
               id="raumname"
               placeholder=""
               value={fields.raumname ?? ''}
               onChange={e => setFields(f => ({ ...f, raumname: e.target.value }))}
+              required
             />
           </div>
           <div className="space-y-2">
@@ -191,7 +192,7 @@ export default function PublicFormRaeumeUndOrte() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="raum_typ">Typ</Label>
+            <Label htmlFor="raum_typ">Typ *</Label>
             <div role="radiogroup" className="flex flex-wrap gap-1.5">
               <button
                 type="button"
@@ -222,7 +223,7 @@ export default function PublicFormRaeumeUndOrte() {
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="status">Status</Label>
+            <Label htmlFor="status">Status *</Label>
             <div role="radiogroup" className="flex flex-wrap gap-1.5">
               <button
                 type="button"
@@ -253,7 +254,7 @@ export default function PublicFormRaeumeUndOrte() {
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="online_raum">Online-Raum</Label>
+            <Label htmlFor="online_raum">Online-Raum *</Label>
             <div role="radiogroup" className="flex flex-wrap gap-1.5">
               <button
                 type="button"

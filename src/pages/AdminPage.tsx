@@ -1,19 +1,19 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useDashboardData } from '@/hooks/useDashboardData';
-import type { RaeumeUndOrte, Trainer, Kurse, Anmeldungen, Teilnehmer, Kurstermine } from '@/types/app';
+import type { Trainer, Teilnehmer, RaeumeUndOrte, Kurstermine, Kurse, Anmeldungen } from '@/types/app';
 import { LivingAppsService, extractRecordId, cleanFieldsForApi } from '@/services/livingAppsService';
-import { RaeumeUndOrteDialog } from '@/components/dialogs/RaeumeUndOrteDialog';
-import { RaeumeUndOrteViewDialog } from '@/components/dialogs/RaeumeUndOrteViewDialog';
 import { TrainerDialog } from '@/components/dialogs/TrainerDialog';
 import { TrainerViewDialog } from '@/components/dialogs/TrainerViewDialog';
+import { TeilnehmerDialog } from '@/components/dialogs/TeilnehmerDialog';
+import { TeilnehmerViewDialog } from '@/components/dialogs/TeilnehmerViewDialog';
+import { RaeumeUndOrteDialog } from '@/components/dialogs/RaeumeUndOrteDialog';
+import { RaeumeUndOrteViewDialog } from '@/components/dialogs/RaeumeUndOrteViewDialog';
+import { KurstermineDialog } from '@/components/dialogs/KurstermineDialog';
+import { KurstermineViewDialog } from '@/components/dialogs/KurstermineViewDialog';
 import { KurseDialog } from '@/components/dialogs/KurseDialog';
 import { KurseViewDialog } from '@/components/dialogs/KurseViewDialog';
 import { AnmeldungenDialog } from '@/components/dialogs/AnmeldungenDialog';
 import { AnmeldungenViewDialog } from '@/components/dialogs/AnmeldungenViewDialog';
-import { TeilnehmerDialog } from '@/components/dialogs/TeilnehmerDialog';
-import { TeilnehmerViewDialog } from '@/components/dialogs/TeilnehmerViewDialog';
-import { KurstermineDialog } from '@/components/dialogs/KurstermineDialog';
-import { KurstermineViewDialog } from '@/components/dialogs/KurstermineViewDialog';
 import { BulkEditDialog } from '@/components/dialogs/BulkEditDialog';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { PageShell } from '@/components/PageShell';
@@ -40,6 +40,21 @@ function fmtDate(d?: string) {
 }
 
 // Field metadata per entity for bulk edit and column filters
+const TRAINER_FIELDS = [
+  { key: 'vorname', label: 'Vorname', type: 'string/text' },
+  { key: 'nachname', label: 'Nachname', type: 'string/text' },
+  { key: 'email', label: 'E-Mail-Adresse', type: 'string/email' },
+  { key: 'trainer_typ', label: 'Trainer-Typ', type: 'lookup/radio', options: [{ key: 'intern', label: 'Intern' }, { key: 'extern', label: 'Extern' }] },
+  { key: 'fachgebiete', label: 'Fachgebiet(e)', type: 'string/textarea' },
+];
+const TEILNEHMER_FIELDS = [
+  { key: 'vorname', label: 'Vorname', type: 'string/text' },
+  { key: 'nachname', label: 'Nachname', type: 'string/text' },
+  { key: 'email', label: 'E-Mail-Adresse', type: 'string/email' },
+  { key: 'firma_abteilung', label: 'Firma / Abteilung', type: 'string/text' },
+  { key: 'rolle', label: 'Rolle im Unternehmen', type: 'string/text' },
+  { key: 'aktiv_status', label: 'Aktiv-Status', type: 'lookup/radio', options: [{ key: 'inaktiv', label: 'Inaktiv' }, { key: 'aktiv', label: 'Aktiv' }] },
+];
 const RAEUMEUNDORTE_FIELDS = [
   { key: 'raumname', label: 'Name des Raums/Orts', type: 'string/text' },
   { key: 'strasse', label: 'Straße', type: 'string/text' },
@@ -54,12 +69,17 @@ const RAEUMEUNDORTE_FIELDS = [
   { key: 'online_link', label: 'Online-Link', type: 'string/url' },
   { key: 'bemerkung', label: 'Bemerkung', type: 'string/textarea' },
 ];
-const TRAINER_FIELDS = [
-  { key: 'vorname', label: 'Vorname', type: 'string/text' },
-  { key: 'nachname', label: 'Nachname', type: 'string/text' },
-  { key: 'email', label: 'E-Mail-Adresse', type: 'string/email' },
-  { key: 'trainer_typ', label: 'Trainer-Typ', type: 'lookup/radio', options: [{ key: 'intern', label: 'Intern' }, { key: 'extern', label: 'Extern' }] },
-  { key: 'fachgebiete', label: 'Fachgebiet(e)', type: 'string/textarea' },
+const KURSTERMINE_FIELDS = [
+  { key: 'raum', label: 'Raum/Ort', type: 'applookup/select', targetEntity: 'raeume_und_orte', targetAppId: 'RAEUME_UND_ORTE', displayField: 'raumname' },
+  { key: 'kurs', label: 'Kurs', type: 'applookup/select', targetEntity: 'kurse', targetAppId: 'KURSE', displayField: 'kurstitel' },
+  { key: 'startdatum', label: 'Startdatum und -uhrzeit', type: 'date/datetimeminute' },
+  { key: 'enddatum', label: 'Enddatum und -uhrzeit', type: 'date/datetimeminute' },
+  { key: 'ort', label: 'Ort (Freitext)', type: 'string/text' },
+  { key: 'online_link', label: 'Online-Link', type: 'string/url' },
+  { key: 'anmeldefrist', label: 'Anmeldefrist', type: 'date/date' },
+  { key: 'trainer', label: 'Trainer', type: 'applookup/select', targetEntity: 'trainer', targetAppId: 'TRAINER', displayField: 'vorname' },
+  { key: 'max_teilnehmer_abweichend', label: 'Maximale Teilnehmerzahl (abweichend vom Kurs)', type: 'number' },
+  { key: 'status', label: 'Status', type: 'lookup/select', options: [{ key: 'geplant', label: 'Geplant' }, { key: 'offen', label: 'Offen zur Anmeldung' }, { key: 'voll', label: 'Voll' }, { key: 'durchgefuehrt', label: 'Durchgeführt' }, { key: 'abgesagt', label: 'Abgesagt' }] },
 ];
 const KURSE_FIELDS = [
   { key: 'kurstitel', label: 'Kurstitel', type: 'string/text' },
@@ -80,34 +100,14 @@ const ANMELDUNGEN_FIELDS = [
   { key: 'status', label: 'Status', type: 'lookup/select', options: [{ key: 'vorgemerkt', label: 'Vorgemerkt' }, { key: 'angemeldet', label: 'Angemeldet' }, { key: 'warteliste', label: 'Warteliste' }, { key: 'storniert', label: 'Storniert' }, { key: 'teilgenommen', label: 'Teilgenommen' }, { key: 'nicht_erschienen', label: 'Nicht erschienen' }] },
   { key: 'bemerkung', label: 'Bemerkung', type: 'string/textarea' },
 ];
-const TEILNEHMER_FIELDS = [
-  { key: 'vorname', label: 'Vorname', type: 'string/text' },
-  { key: 'nachname', label: 'Nachname', type: 'string/text' },
-  { key: 'email', label: 'E-Mail-Adresse', type: 'string/email' },
-  { key: 'firma_abteilung', label: 'Firma / Abteilung', type: 'string/text' },
-  { key: 'rolle', label: 'Rolle im Unternehmen', type: 'string/text' },
-  { key: 'aktiv_status', label: 'Aktiv-Status', type: 'lookup/radio', options: [{ key: 'inaktiv', label: 'Inaktiv' }, { key: 'aktiv', label: 'Aktiv' }] },
-];
-const KURSTERMINE_FIELDS = [
-  { key: 'raum', label: 'Raum/Ort', type: 'applookup/select', targetEntity: 'raeume_und_orte', targetAppId: 'RAEUME_UND_ORTE', displayField: 'raumname' },
-  { key: 'kurs', label: 'Kurs', type: 'applookup/select', targetEntity: 'kurse', targetAppId: 'KURSE', displayField: 'kurstitel' },
-  { key: 'startdatum', label: 'Startdatum und -uhrzeit', type: 'date/datetimeminute' },
-  { key: 'enddatum', label: 'Enddatum und -uhrzeit', type: 'date/datetimeminute' },
-  { key: 'ort', label: 'Ort (Freitext)', type: 'string/text' },
-  { key: 'online_link', label: 'Online-Link', type: 'string/url' },
-  { key: 'anmeldefrist', label: 'Anmeldefrist', type: 'date/date' },
-  { key: 'trainer', label: 'Trainer', type: 'applookup/select', targetEntity: 'trainer', targetAppId: 'TRAINER', displayField: 'vorname' },
-  { key: 'max_teilnehmer_abweichend', label: 'Maximale Teilnehmerzahl (abweichend vom Kurs)', type: 'number' },
-  { key: 'status', label: 'Status', type: 'lookup/select', options: [{ key: 'geplant', label: 'Geplant' }, { key: 'offen', label: 'Offen zur Anmeldung' }, { key: 'voll', label: 'Voll' }, { key: 'durchgefuehrt', label: 'Durchgeführt' }, { key: 'abgesagt', label: 'Abgesagt' }] },
-];
 
 const ENTITY_TABS = [
-  { key: 'raeume_und_orte', label: 'Räume und Orte', pascal: 'RaeumeUndOrte' },
   { key: 'trainer', label: 'Trainer', pascal: 'Trainer' },
+  { key: 'teilnehmer', label: 'Teilnehmer', pascal: 'Teilnehmer' },
+  { key: 'raeume_und_orte', label: 'Räume und Orte', pascal: 'RaeumeUndOrte' },
+  { key: 'kurstermine', label: 'Kurstermine', pascal: 'Kurstermine' },
   { key: 'kurse', label: 'Kurse', pascal: 'Kurse' },
   { key: 'anmeldungen', label: 'Anmeldungen', pascal: 'Anmeldungen' },
-  { key: 'teilnehmer', label: 'Teilnehmer', pascal: 'Teilnehmer' },
-  { key: 'kurstermine', label: 'Kurstermine', pascal: 'Kurstermine' },
 ] as const;
 
 type EntityKey = typeof ENTITY_TABS[number]['key'];
@@ -116,22 +116,22 @@ export default function AdminPage() {
   const data = useDashboardData();
   const { loading, error, fetchAll } = data;
 
-  const [activeTab, setActiveTab] = useState<EntityKey>('raeume_und_orte');
+  const [activeTab, setActiveTab] = useState<EntityKey>('trainer');
   const [selectedIds, setSelectedIds] = useState<Record<EntityKey, Set<string>>>(() => ({
-    'raeume_und_orte': new Set(),
     'trainer': new Set(),
+    'teilnehmer': new Set(),
+    'raeume_und_orte': new Set(),
+    'kurstermine': new Set(),
     'kurse': new Set(),
     'anmeldungen': new Set(),
-    'teilnehmer': new Set(),
-    'kurstermine': new Set(),
   }));
   const [filters, setFilters] = useState<Record<EntityKey, Record<string, string>>>(() => ({
-    'raeume_und_orte': {},
     'trainer': {},
+    'teilnehmer': {},
+    'raeume_und_orte': {},
+    'kurstermine': {},
     'kurse': {},
     'anmeldungen': {},
-    'teilnehmer': {},
-    'kurstermine': {},
   }));
   const [showFilters, setShowFilters] = useState(false);
   const [dialogState, setDialogState] = useState<{ entity: EntityKey; record: any } | null>(null);
@@ -146,12 +146,12 @@ export default function AdminPage() {
 
   const getRecords = useCallback((entity: EntityKey) => {
     switch (entity) {
-      case 'raeume_und_orte': return (data as any).raeumeUndOrte as RaeumeUndOrte[] ?? [];
       case 'trainer': return (data as any).trainer as Trainer[] ?? [];
+      case 'teilnehmer': return (data as any).teilnehmer as Teilnehmer[] ?? [];
+      case 'raeume_und_orte': return (data as any).raeumeUndOrte as RaeumeUndOrte[] ?? [];
+      case 'kurstermine': return (data as any).kurstermine as Kurstermine[] ?? [];
       case 'kurse': return (data as any).kurse as Kurse[] ?? [];
       case 'anmeldungen': return (data as any).anmeldungen as Anmeldungen[] ?? [];
-      case 'teilnehmer': return (data as any).teilnehmer as Teilnehmer[] ?? [];
-      case 'kurstermine': return (data as any).kurstermine as Kurstermine[] ?? [];
       default: return [];
     }
   }, [data]);
@@ -159,15 +159,15 @@ export default function AdminPage() {
   const getLookupLists = useCallback((entity: EntityKey) => {
     const lists: Record<string, any[]> = {};
     switch (entity) {
-      case 'anmeldungen':
-        lists.kurstermineList = (data as any).kurstermine ?? [];
-        lists.kurseList = (data as any).kurse ?? [];
-        lists.teilnehmerList = (data as any).teilnehmer ?? [];
-        break;
       case 'kurstermine':
         lists.raeumeUndOrteList = (data as any).raeumeUndOrte ?? [];
         lists.kurseList = (data as any).kurse ?? [];
         lists.trainerList = (data as any).trainer ?? [];
+        break;
+      case 'anmeldungen':
+        lists.kurstermineList = (data as any).kurstermine ?? [];
+        lists.kurseList = (data as any).kurse ?? [];
+        lists.teilnehmerList = (data as any).teilnehmer ?? [];
         break;
     }
     return lists;
@@ -179,18 +179,6 @@ export default function AdminPage() {
     if (!id) return '—';
     const lists = getLookupLists(entity);
     void fieldKey; // ensure used for noUnusedParameters
-    if (entity === 'anmeldungen' && fieldKey === 'kurstermin') {
-      const match = (lists.kurstermineList ?? []).find((r: any) => r.record_id === id);
-      return match?.fields.ort ?? '—';
-    }
-    if (entity === 'anmeldungen' && fieldKey === 'kurs') {
-      const match = (lists.kurseList ?? []).find((r: any) => r.record_id === id);
-      return match?.fields.kurstitel ?? '—';
-    }
-    if (entity === 'anmeldungen' && fieldKey === 'teilnehmer') {
-      const match = (lists.teilnehmerList ?? []).find((r: any) => r.record_id === id);
-      return match?.fields.vorname ?? '—';
-    }
     if (entity === 'kurstermine' && fieldKey === 'raum') {
       const match = (lists.raeumeUndOrteList ?? []).find((r: any) => r.record_id === id);
       return match?.fields.raumname ?? '—';
@@ -203,17 +191,29 @@ export default function AdminPage() {
       const match = (lists.trainerList ?? []).find((r: any) => r.record_id === id);
       return match?.fields.vorname ?? '—';
     }
+    if (entity === 'anmeldungen' && fieldKey === 'kurstermin') {
+      const match = (lists.kurstermineList ?? []).find((r: any) => r.record_id === id);
+      return match?.fields.ort ?? '—';
+    }
+    if (entity === 'anmeldungen' && fieldKey === 'kurs') {
+      const match = (lists.kurseList ?? []).find((r: any) => r.record_id === id);
+      return match?.fields.kurstitel ?? '—';
+    }
+    if (entity === 'anmeldungen' && fieldKey === 'teilnehmer') {
+      const match = (lists.teilnehmerList ?? []).find((r: any) => r.record_id === id);
+      return match?.fields.vorname ?? '—';
+    }
     return String(url);
   }, [getLookupLists]);
 
   const getFieldMeta = useCallback((entity: EntityKey) => {
     switch (entity) {
-      case 'raeume_und_orte': return RAEUMEUNDORTE_FIELDS;
       case 'trainer': return TRAINER_FIELDS;
+      case 'teilnehmer': return TEILNEHMER_FIELDS;
+      case 'raeume_und_orte': return RAEUMEUNDORTE_FIELDS;
+      case 'kurstermine': return KURSTERMINE_FIELDS;
       case 'kurse': return KURSE_FIELDS;
       case 'anmeldungen': return ANMELDUNGEN_FIELDS;
-      case 'teilnehmer': return TEILNEHMER_FIELDS;
-      case 'kurstermine': return KURSTERMINE_FIELDS;
       default: return [];
     }
   }, []);
@@ -308,15 +308,25 @@ export default function AdminPage() {
 
   const getServiceMethods = useCallback((entity: EntityKey) => {
     switch (entity) {
+      case 'trainer': return {
+        create: (fields: any) => LivingAppsService.createTrainerEntry(fields),
+        update: (id: string, fields: any) => LivingAppsService.updateTrainerEntry(id, fields),
+        remove: (id: string) => LivingAppsService.deleteTrainerEntry(id),
+      };
+      case 'teilnehmer': return {
+        create: (fields: any) => LivingAppsService.createTeilnehmerEntry(fields),
+        update: (id: string, fields: any) => LivingAppsService.updateTeilnehmerEntry(id, fields),
+        remove: (id: string) => LivingAppsService.deleteTeilnehmerEntry(id),
+      };
       case 'raeume_und_orte': return {
         create: (fields: any) => LivingAppsService.createRaeumeUndOrteEntry(fields),
         update: (id: string, fields: any) => LivingAppsService.updateRaeumeUndOrteEntry(id, fields),
         remove: (id: string) => LivingAppsService.deleteRaeumeUndOrteEntry(id),
       };
-      case 'trainer': return {
-        create: (fields: any) => LivingAppsService.createTrainerEntry(fields),
-        update: (id: string, fields: any) => LivingAppsService.updateTrainerEntry(id, fields),
-        remove: (id: string) => LivingAppsService.deleteTrainerEntry(id),
+      case 'kurstermine': return {
+        create: (fields: any) => LivingAppsService.createKurstermineEntry(fields),
+        update: (id: string, fields: any) => LivingAppsService.updateKurstermineEntry(id, fields),
+        remove: (id: string) => LivingAppsService.deleteKurstermineEntry(id),
       };
       case 'kurse': return {
         create: (fields: any) => LivingAppsService.createKurseEntry(fields),
@@ -327,16 +337,6 @@ export default function AdminPage() {
         create: (fields: any) => LivingAppsService.createAnmeldungenEntry(fields),
         update: (id: string, fields: any) => LivingAppsService.updateAnmeldungenEntry(id, fields),
         remove: (id: string) => LivingAppsService.deleteAnmeldungenEntry(id),
-      };
-      case 'teilnehmer': return {
-        create: (fields: any) => LivingAppsService.createTeilnehmerEntry(fields),
-        update: (id: string, fields: any) => LivingAppsService.updateTeilnehmerEntry(id, fields),
-        remove: (id: string) => LivingAppsService.deleteTeilnehmerEntry(id),
-      };
-      case 'kurstermine': return {
-        create: (fields: any) => LivingAppsService.createKurstermineEntry(fields),
-        update: (id: string, fields: any) => LivingAppsService.updateKurstermineEntry(id, fields),
-        remove: (id: string) => LivingAppsService.deleteKurstermineEntry(id),
       };
       default: return null;
     }
@@ -678,6 +678,26 @@ export default function AdminPage() {
         </Table>
       </div>
 
+      {(createEntity === 'trainer' || dialogState?.entity === 'trainer') && (
+        <TrainerDialog
+          open={createEntity === 'trainer' || dialogState?.entity === 'trainer'}
+          onClose={() => { setCreateEntity(null); setDialogState(null); }}
+          onSubmit={dialogState?.entity === 'trainer' ? handleUpdate : (fields: any) => handleCreate('trainer', fields)}
+          defaultValues={dialogState?.entity === 'trainer' ? dialogState.record?.fields : undefined}
+          enablePhotoScan={AI_PHOTO_SCAN['Trainer']}
+          enablePhotoLocation={AI_PHOTO_LOCATION['Trainer']}
+        />
+      )}
+      {(createEntity === 'teilnehmer' || dialogState?.entity === 'teilnehmer') && (
+        <TeilnehmerDialog
+          open={createEntity === 'teilnehmer' || dialogState?.entity === 'teilnehmer'}
+          onClose={() => { setCreateEntity(null); setDialogState(null); }}
+          onSubmit={dialogState?.entity === 'teilnehmer' ? handleUpdate : (fields: any) => handleCreate('teilnehmer', fields)}
+          defaultValues={dialogState?.entity === 'teilnehmer' ? dialogState.record?.fields : undefined}
+          enablePhotoScan={AI_PHOTO_SCAN['Teilnehmer']}
+          enablePhotoLocation={AI_PHOTO_LOCATION['Teilnehmer']}
+        />
+      )}
       {(createEntity === 'raeume_und_orte' || dialogState?.entity === 'raeume_und_orte') && (
         <RaeumeUndOrteDialog
           open={createEntity === 'raeume_und_orte' || dialogState?.entity === 'raeume_und_orte'}
@@ -688,14 +708,17 @@ export default function AdminPage() {
           enablePhotoLocation={AI_PHOTO_LOCATION['RaeumeUndOrte']}
         />
       )}
-      {(createEntity === 'trainer' || dialogState?.entity === 'trainer') && (
-        <TrainerDialog
-          open={createEntity === 'trainer' || dialogState?.entity === 'trainer'}
+      {(createEntity === 'kurstermine' || dialogState?.entity === 'kurstermine') && (
+        <KurstermineDialog
+          open={createEntity === 'kurstermine' || dialogState?.entity === 'kurstermine'}
           onClose={() => { setCreateEntity(null); setDialogState(null); }}
-          onSubmit={dialogState?.entity === 'trainer' ? handleUpdate : (fields: any) => handleCreate('trainer', fields)}
-          defaultValues={dialogState?.entity === 'trainer' ? dialogState.record?.fields : undefined}
-          enablePhotoScan={AI_PHOTO_SCAN['Trainer']}
-          enablePhotoLocation={AI_PHOTO_LOCATION['Trainer']}
+          onSubmit={dialogState?.entity === 'kurstermine' ? handleUpdate : (fields: any) => handleCreate('kurstermine', fields)}
+          defaultValues={dialogState?.entity === 'kurstermine' ? dialogState.record?.fields : undefined}
+          raeumeUndOrteList={(data as any).raeumeUndOrte ?? []}
+          kurseList={(data as any).kurse ?? []}
+          trainerList={(data as any).trainer ?? []}
+          enablePhotoScan={AI_PHOTO_SCAN['Kurstermine']}
+          enablePhotoLocation={AI_PHOTO_LOCATION['Kurstermine']}
         />
       )}
       {(createEntity === 'kurse' || dialogState?.entity === 'kurse') && (
@@ -721,27 +744,20 @@ export default function AdminPage() {
           enablePhotoLocation={AI_PHOTO_LOCATION['Anmeldungen']}
         />
       )}
-      {(createEntity === 'teilnehmer' || dialogState?.entity === 'teilnehmer') && (
-        <TeilnehmerDialog
-          open={createEntity === 'teilnehmer' || dialogState?.entity === 'teilnehmer'}
-          onClose={() => { setCreateEntity(null); setDialogState(null); }}
-          onSubmit={dialogState?.entity === 'teilnehmer' ? handleUpdate : (fields: any) => handleCreate('teilnehmer', fields)}
-          defaultValues={dialogState?.entity === 'teilnehmer' ? dialogState.record?.fields : undefined}
-          enablePhotoScan={AI_PHOTO_SCAN['Teilnehmer']}
-          enablePhotoLocation={AI_PHOTO_LOCATION['Teilnehmer']}
+      {viewState?.entity === 'trainer' && (
+        <TrainerViewDialog
+          open={viewState?.entity === 'trainer'}
+          onClose={() => setViewState(null)}
+          record={viewState?.record}
+          onEdit={(r: any) => { setViewState(null); setDialogState({ entity: 'trainer', record: r }); }}
         />
       )}
-      {(createEntity === 'kurstermine' || dialogState?.entity === 'kurstermine') && (
-        <KurstermineDialog
-          open={createEntity === 'kurstermine' || dialogState?.entity === 'kurstermine'}
-          onClose={() => { setCreateEntity(null); setDialogState(null); }}
-          onSubmit={dialogState?.entity === 'kurstermine' ? handleUpdate : (fields: any) => handleCreate('kurstermine', fields)}
-          defaultValues={dialogState?.entity === 'kurstermine' ? dialogState.record?.fields : undefined}
-          raeumeUndOrteList={(data as any).raeumeUndOrte ?? []}
-          kurseList={(data as any).kurse ?? []}
-          trainerList={(data as any).trainer ?? []}
-          enablePhotoScan={AI_PHOTO_SCAN['Kurstermine']}
-          enablePhotoLocation={AI_PHOTO_LOCATION['Kurstermine']}
+      {viewState?.entity === 'teilnehmer' && (
+        <TeilnehmerViewDialog
+          open={viewState?.entity === 'teilnehmer'}
+          onClose={() => setViewState(null)}
+          record={viewState?.record}
+          onEdit={(r: any) => { setViewState(null); setDialogState({ entity: 'teilnehmer', record: r }); }}
         />
       )}
       {viewState?.entity === 'raeume_und_orte' && (
@@ -752,12 +768,15 @@ export default function AdminPage() {
           onEdit={(r: any) => { setViewState(null); setDialogState({ entity: 'raeume_und_orte', record: r }); }}
         />
       )}
-      {viewState?.entity === 'trainer' && (
-        <TrainerViewDialog
-          open={viewState?.entity === 'trainer'}
+      {viewState?.entity === 'kurstermine' && (
+        <KurstermineViewDialog
+          open={viewState?.entity === 'kurstermine'}
           onClose={() => setViewState(null)}
           record={viewState?.record}
-          onEdit={(r: any) => { setViewState(null); setDialogState({ entity: 'trainer', record: r }); }}
+          onEdit={(r: any) => { setViewState(null); setDialogState({ entity: 'kurstermine', record: r }); }}
+          raeumeUndOrteList={(data as any).raeumeUndOrte ?? []}
+          kurseList={(data as any).kurse ?? []}
+          trainerList={(data as any).trainer ?? []}
         />
       )}
       {viewState?.entity === 'kurse' && (
@@ -777,25 +796,6 @@ export default function AdminPage() {
           kurstermineList={(data as any).kurstermine ?? []}
           kurseList={(data as any).kurse ?? []}
           teilnehmerList={(data as any).teilnehmer ?? []}
-        />
-      )}
-      {viewState?.entity === 'teilnehmer' && (
-        <TeilnehmerViewDialog
-          open={viewState?.entity === 'teilnehmer'}
-          onClose={() => setViewState(null)}
-          record={viewState?.record}
-          onEdit={(r: any) => { setViewState(null); setDialogState({ entity: 'teilnehmer', record: r }); }}
-        />
-      )}
-      {viewState?.entity === 'kurstermine' && (
-        <KurstermineViewDialog
-          open={viewState?.entity === 'kurstermine'}
-          onClose={() => setViewState(null)}
-          record={viewState?.record}
-          onEdit={(r: any) => { setViewState(null); setDialogState({ entity: 'kurstermine', record: r }); }}
-          raeumeUndOrteList={(data as any).raeumeUndOrte ?? []}
-          kurseList={(data as any).kurse ?? []}
-          trainerList={(data as any).trainer ?? []}
         />
       )}
 

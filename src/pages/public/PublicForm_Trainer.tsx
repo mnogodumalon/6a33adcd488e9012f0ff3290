@@ -124,25 +124,27 @@ export default function PublicFormTrainer() {
 
         <form onSubmit={handleSubmit} className="space-y-5 bg-card rounded-xl border border-border p-6 shadow-md">
           <div className="space-y-2">
-            <Label htmlFor="vorname">Vorname</Label>
+            <Label htmlFor="vorname">Vorname *</Label>
             <Input
               id="vorname"
               placeholder=""
               value={fields.vorname ?? ''}
               onChange={e => setFields(f => ({ ...f, vorname: e.target.value }))}
+              required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="nachname">Nachname</Label>
+            <Label htmlFor="nachname">Nachname *</Label>
             <Input
               id="nachname"
               placeholder=""
               value={fields.nachname ?? ''}
               onChange={e => setFields(f => ({ ...f, nachname: e.target.value }))}
+              required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email">E-Mail-Adresse</Label>
+            <Label htmlFor="email">E-Mail-Adresse *</Label>
             <Input
               id="email"
               type="email"
@@ -152,7 +154,7 @@ export default function PublicFormTrainer() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="trainer_typ">Trainer-Typ</Label>
+            <Label htmlFor="trainer_typ">Trainer-Typ *</Label>
             <div role="radiogroup" className="flex flex-wrap gap-1.5">
               <button
                 type="button"

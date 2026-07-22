@@ -124,16 +124,17 @@ export default function PublicFormKurse() {
 
         <form onSubmit={handleSubmit} className="space-y-5 bg-card rounded-xl border border-border p-6 shadow-md">
           <div className="space-y-2">
-            <Label htmlFor="kurstitel">Kurstitel</Label>
+            <Label htmlFor="kurstitel">Kurstitel *</Label>
             <Input
               id="kurstitel"
               placeholder=""
               value={fields.kurstitel ?? ''}
               onChange={e => setFields(f => ({ ...f, kurstitel: e.target.value }))}
+              required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="kurzbeschreibung">Kurzbeschreibung</Label>
+            <Label htmlFor="kurzbeschreibung">Kurzbeschreibung *</Label>
             <Textarea
               id="kurzbeschreibung"
               placeholder=""
@@ -153,7 +154,7 @@ export default function PublicFormKurse() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="kategorie">Kategorie</Label>
+            <Label htmlFor="kategorie">Kategorie *</Label>
             <div role="radiogroup" className="flex flex-wrap gap-1.5">
               <button
                 type="button"
@@ -210,7 +211,7 @@ export default function PublicFormKurse() {
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="dauer_anzahl">Dauer (Anzahl)</Label>
+            <Label htmlFor="dauer_anzahl">Dauer (Anzahl) *</Label>
             <Input
               id="dauer_anzahl"
               type="number"
@@ -222,7 +223,7 @@ export default function PublicFormKurse() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="dauer_einheit">Dauer (Einheit)</Label>
+            <Label htmlFor="dauer_einheit">Dauer (Einheit) *</Label>
             <div role="radiogroup" className="flex flex-wrap gap-1.5">
               <button
                 type="button"
@@ -262,7 +263,7 @@ export default function PublicFormKurse() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="max_teilnehmer">Maximale Teilnehmerzahl</Label>
+            <Label htmlFor="max_teilnehmer">Maximale Teilnehmerzahl *</Label>
             <Input
               id="max_teilnehmer"
               type="number"
@@ -274,7 +275,7 @@ export default function PublicFormKurse() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="status">Status</Label>
+            <Label htmlFor="status">Status *</Label>
             <div role="radiogroup" className="flex flex-wrap gap-1.5">
               <button
                 type="button"

@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect, useCallback, type ReactElement } from 'react';
-import { IconSparkles, IconX, IconSend, IconPaperclip, IconLoader2, IconCopy, IconCheck, IconFileTypePdf, IconFileSpreadsheet, IconMaximize, IconMinimize } from '@tabler/icons-react';
+import { IconSparkles, IconX, IconSend, IconPaperclip, IconLoader2, IconFileTypePdf, IconFileSpreadsheet, IconMaximize, IconMinimize, IconWand, IconGitCommit, IconHistory, IconMessagePlus, IconMessageCircle, IconArrowLeft, IconSearch, IconTrash, IconCode } from '@tabler/icons-react';
 import { fileToDataUri } from '@/lib/ai';
+import { highlightPython, CopyButton } from '@/lib/highlight';
 import { useActions } from '@/context/ActionsContext';
+import type { ChatSessionMeta } from '@/lib/actions-agent';
 
 // ---------------------------------------------------------------------------
 // Lightweight Markdown renderer (no external deps)
@@ -117,7 +119,7 @@ function JsonValue({ value, depth = 0 }: { value: unknown; depth?: number }) {
   return <span>{String(value)}</span>;
 }
 
-function JsonView({ text }: { text: string }) {
+export function JsonView({ text }: { text: string }) {
   const parsed = tryParseJson(text);
   if (parsed === undefined) {
     // Fallback: not valid JSON, render as code
@@ -131,64 +133,6 @@ function JsonView({ text }: { text: string }) {
     <div className="my-1.5 p-2.5 rounded-lg bg-black/5 overflow-x-auto text-[0.9em]">
       <JsonValue value={parsed} />
     </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Lightweight Python syntax highlighter (no external deps)
-// ---------------------------------------------------------------------------
-
-function highlightPython(code: string): React.ReactNode[] {
-  const tokens: Array<{ type: string; text: string }> = [];
-  const re = /(#[^\n]*)|('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|"""[\s\S]*?"""|'''[\s\S]*?''')|(@\w+)|\b(def|class|return|if|elif|else|for|while|try|except|finally|with|as|import|from|raise|yield|lambda|and|or|not|in|is|True|False|None|break|continue|pass|async|await|global|nonlocal|del|assert)\b|\b(print|len|range|str|int|float|list|dict|set|tuple|isinstance|type|super|self|cls|enumerate|zip|map|filter|sorted|open|Exception|ValueError|TypeError|KeyError|RuntimeError|StopIteration|property|staticmethod|classmethod|__init__|__name__|__main__)\b|\b(\d+\.?\d*(?:e[+-]?\d+)?)\b/g;
-  let last = 0;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(code)) !== null) {
-    if (m.index > last) tokens.push({ type: 'plain', text: code.slice(last, m.index) });
-    if (m[1]) tokens.push({ type: 'comment', text: m[0] });
-    else if (m[2]) tokens.push({ type: 'string', text: m[0] });
-    else if (m[3]) tokens.push({ type: 'decorator', text: m[0] });
-    else if (m[4]) tokens.push({ type: 'keyword', text: m[0] });
-    else if (m[5]) tokens.push({ type: 'builtin', text: m[0] });
-    else if (m[6]) tokens.push({ type: 'number', text: m[0] });
-    else tokens.push({ type: 'plain', text: m[0] });
-    last = m.index + m[0].length;
-  }
-  if (last < code.length) tokens.push({ type: 'plain', text: code.slice(last) });
-
-  const colorMap: Record<string, string> = {
-    comment: 'text-emerald-600',
-    string: 'text-amber-600',
-    keyword: 'text-purple-600 font-medium',
-    builtin: 'text-blue-600',
-    number: 'text-orange-600',
-    decorator: 'text-rose-600',
-    plain: '',
-  };
-
-  return tokens.map((t, i) => (
-    t.type === 'plain'
-      ? <span key={i}>{t.text}</span>
-      : <span key={i} className={colorMap[t.type]}>{t.text}</span>
-  ));
-}
-
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <button
-      onClick={() => {
-        navigator.clipboard.writeText(text).then(() => {
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-        });
-      }}
-      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors mt-1"
-      title={copied ? "Kopiert!" : "Code kopieren"}
-    >
-      {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
-      {copied && <span>Kopiert!</span>}
-    </button>
   );
 }
 
@@ -351,12 +295,180 @@ function getFileTypeInfo(dataUri: string) {
   return null;
 }
 
-export default function ChatWidget() {
-  const { chatOpen, setChatOpen, messages, chatLoading, sendMessage } = useActions();
+// Localized labels for version-history origins (agent-written summaries stay
+// in the language the agent wrote them in; origins are localized here)
+const ORIGIN_LABELS: Record<string, string> = {
+  fix: 'Auto-Fix',
+  chat: 'Chat',
+  initial: 'Erstellt',
+  revert: 'Wiederhergestellt',
+};
+
+// ---------------------------------------------------------------------------
+// Chat history — session helpers + the list shared by the floating widget's
+// history view and the code drawer's dock popover
+// ---------------------------------------------------------------------------
+
+// Titles/previews are single-line plain text — the backend stores them
+// stripped, but entries persisted before that (or by older backends) may
+// still carry raw markdown, so rendering strips again.
+function stripMd(text: string): string {
+  return (text || '')
+    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/(\*\*|__|`{1,3}|~~)/g, '')
+    .replace(/^[#>\s]+/, '');
+}
+
+function sessionGroup(iso: string): 'today' | 'yesterday' | 'older' {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return 'older';
+  const startOfDay = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = startOfDay(new Date()) - startOfDay(d);
+  if (diff <= 0) return 'today';
+  if (diff <= 86400000) return 'yesterday';
+  return 'older';
+}
+
+function sessionTime(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return d.toDateString() === new Date().toDateString()
+    ? d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+    : d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+}
+
+const GROUP_LABELS: Record<'today' | 'yesterday' | 'older', string> = {
+  today: 'Heute',
+  yesterday: 'Gestern',
+  older: 'Älter',
+};
+
+export function ChatHistoryList({ filterAction, onSelect, compact = false }: {
+  // Only sessions bound to this Werkzeug (the code drawer's filter)
+  filterAction?: { appId: string; identifier: string } | null;
+  onSelect?: () => void;
+  compact?: boolean;
+}) {
+  const { chatSessions, activeThreadId, loadChatSession, deleteChatSession, refreshChatSessions } = useActions();
+  const [query, setQuery] = useState('');
+  // Two-step delete: the first tap arms the trash, the second deletes
+  const [armedDelete, setArmedDelete] = useState<string | null>(null);
+
+  useEffect(() => { void refreshChatSessions(); }, [refreshChatSessions]);
+
+  const q = query.trim().toLowerCase();
+  const visible = chatSessions.filter(s => {
+    if (filterAction && !(s.action && s.action.app_id === filterAction.appId && s.action.identifier === filterAction.identifier)) return false;
+    if (!q) return true;
+    return `${s.title || ''} ${s.preview || ''} ${s.ai?.title || ''} ${s.ai?.summary || ''}`.toLowerCase().includes(q);
+  });
+
+  // Sessions arrive newest first — group consecutively by day bucket
+  const groups: Array<{ key: 'today' | 'yesterday' | 'older'; sessions: ChatSessionMeta[] }> = [];
+  for (const s of visible) {
+    const key = sessionGroup(s.updated_at || s.created_at);
+    const last = groups[groups.length - 1];
+    if (last && last.key === key) last.sessions.push(s);
+    else groups.push({ key, sessions: [s] });
+  }
+
+  return (
+    <>
+      {!compact && chatSessions.length > 4 && (
+        <div className="px-3 pt-2.5 pb-1 shrink-0">
+          <div className="flex items-center gap-2 rounded-xl border border-input bg-card px-2.5 py-1.5">
+            <IconSearch size={13} className="shrink-0 text-muted-foreground" />
+            <input
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Verlauf durchsuchen…"
+              className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/60"
+            />
+          </div>
+        </div>
+      )}
+      <div className="flex-1 overflow-y-auto px-2 pb-2">
+        {visible.length === 0 && (
+          <div className="flex flex-col items-center justify-center gap-2 py-10 text-center text-muted-foreground">
+            <IconHistory size={24} stroke={1.5} />
+            <p className="text-xs">Noch keine Unterhaltungen</p>
+          </div>
+        )}
+        {groups.map(group => (
+          <div key={`${group.key}-${group.sessions[0].id}`}>
+            <p className="px-2.5 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">{GROUP_LABELS[group.key]}</p>
+            {group.sessions.map(s => (
+              <div key={s.id} className="group relative">
+                <button
+                  type="button"
+                  onClick={() => { void loadChatSession(s.id); onSelect?.(); }}
+                  className={`flex w-full items-start gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors ${s.id === activeThreadId ? 'bg-accent' : 'hover:bg-muted/60'}`}
+                >
+                  <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${s.id === activeThreadId ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                    {/* fix/tool keep their semantic icons; plain chats get the AI topic emoji */}
+                    {s.origin === 'fix' ? <IconWand size={14} /> : s.action ? <IconCode size={14} /> : s.ai?.emoji ? <span className="text-[13px] leading-none">{s.ai.emoji}</span> : <IconMessageCircle size={14} />}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-baseline gap-2">
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{stripMd(s.ai?.title || s.title) || 'Assistent'}</span>
+                      <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{sessionTime(s.updated_at || s.created_at)}</span>
+                    </span>
+                    {(s.ai?.summary || s.preview) && <span className="mt-0.5 block truncate text-xs text-muted-foreground">{stripMd(s.ai?.summary || s.preview)}</span>}
+                    {(s.id === activeThreadId || s.origin === 'fix' || !!s.action || (!!s.user?.initials && !s.mine)) && (
+                      <span className="mt-1 flex flex-wrap items-center gap-1">
+                        {s.id === activeThreadId && (
+                          <span className="inline-flex items-center rounded-full border border-green-200 bg-green-50 px-1.5 py-px text-[10px] font-semibold text-green-700">Aktiv</span>
+                        )}
+                        {s.origin === 'fix' && (
+                          <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-1.5 py-px text-[10px] font-semibold text-amber-700">Auto-Fix</span>
+                        )}
+                        {s.action && (
+                          <span className="inline-flex max-w-[11rem] items-center gap-1 truncate rounded-full border border-[#bfdbfe] bg-secondary px-1.5 py-px text-[10px] font-semibold text-[#2563eb]">
+                            <IconCode size={10} className="shrink-0" />
+                            <span className="truncate">{s.action.title || s.action.identifier}</span>
+                          </span>
+                        )}
+                        {s.user?.initials && !s.mine && (
+                          <span title={s.user.name} className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-[#bfdbfe] bg-secondary text-[8px] font-bold text-[#2563eb]">{s.user.initials}</span>
+                        )}
+                      </span>
+                    )}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (armedDelete === s.id) { void deleteChatSession(s.id); setArmedDelete(null); }
+                    else setArmedDelete(s.id);
+                  }}
+                  onBlur={() => setArmedDelete(null)}
+                  title="Sitzung löschen?"
+                  className={`absolute right-2 top-2 items-center justify-center rounded-md border border-border bg-card p-1.5 shadow-sm transition-colors ${
+                    armedDelete === s.id ? 'flex text-destructive' : 'hidden text-muted-foreground hover:text-destructive group-hover:flex'
+                  }`}
+                >
+                  {armedDelete === s.id ? <span className="px-0.5 text-[11px] font-semibold">Löschen?</span> : <IconTrash size={13} />}
+                </button>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ChatPanel — message list + attachment preview + composer. Rendered by the
+// floating ChatWidget AND docked inside the action code drawer; both surfaces
+// show the SAME conversation from ActionsContext. Parent must be flex-col.
+// ---------------------------------------------------------------------------
+
+export function ChatPanel({ placeholder = 'Frage stellen oder Bild hochladen...', autoFocus = false, collapsed = false }: { placeholder?: string; autoFocus?: boolean; collapsed?: boolean }) {
+  const { messages, chatLoading, runningActionId, sendMessage, fixError, fixingMessageId, devMode, openCodeDrawerFor, revertActionVersion, chatSessions, activeThreadId, loadChatSession, resumedSessionAt } = useActions();
   const [input, setInput] = useState('');
   const [image, setImage] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -365,28 +477,27 @@ export default function ChatWidget() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, chatLoading]);
+  }, [messages, chatLoading, collapsed]);
 
   useEffect(() => {
-    if (chatOpen && inputRef.current) {
+    if (autoFocus && inputRef.current) {
       // Delay focus to avoid iOS zoom glitch on panel open
       setTimeout(() => inputRef.current?.focus(), 300);
     }
-    if (!chatOpen) setIsFullscreen(false);
-  }, [chatOpen]);
+  }, [autoFocus]);
 
   const handleSend = useCallback(() => {
     const text = input.trim();
     if (!text && !image) return;
 
     const userContent = text || ('Bild analysieren');
-    sendMessage(userContent, image ?? undefined);
+    sendMessage(userContent, image ?? undefined, fileName ?? undefined);
     setInput('');
     setImage(null);
     setFileName(null);
     // Dismiss keyboard on mobile after send
     inputRef.current?.blur();
-  }, [input, image, sendMessage]);
+  }, [input, image, fileName, sendMessage]);
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -407,6 +518,233 @@ export default function ChatWidget() {
       handleSend();
     }
   };
+
+  return (
+    <>
+      {/* Messages (hidden while docked-collapsed — the composer stays) */}
+      <div ref={scrollRef} className={collapsed ? 'hidden' : 'flex-1 overflow-y-auto px-4 py-3 space-y-3'}>
+        {messages.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-full text-center gap-2 text-muted-foreground">
+            <IconSparkles size={28} stroke={1.5} />
+            <p className="text-xs">{placeholder}</p>
+            {chatSessions.filter(s => s.id !== activeThreadId).length > 0 && (
+              <div className="mt-3 w-full max-w-[260px] text-left">
+                <p className="mb-1.5 px-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">Zuletzt</p>
+                {chatSessions.filter(s => s.id !== activeThreadId).slice(0, 2).map(s => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => void loadChatSession(s.id)}
+                    className="mb-1.5 flex w-full items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-xs text-foreground transition-colors hover:border-primary/40 hover:bg-accent/50"
+                  >
+                    {s.ai?.emoji ? (
+                      <span className="shrink-0 text-[12px] leading-none">{s.ai.emoji}</span>
+                    ) : (
+                      <IconHistory size={13} className="shrink-0 text-muted-foreground" />
+                    )}
+                    <span className="min-w-0 flex-1 truncate text-left">{stripMd(s.ai?.title || s.title)}</span>
+                    <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">{sessionTime(s.updated_at || s.created_at)}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        {resumedSessionAt !== null && messages.length > 0 && (
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+            <span className="h-px flex-1 bg-border" />
+            <span className="shrink-0">
+              Sitzung fortgesetzt{sessionTime(resumedSessionAt) ? ` · ${sessionTime(resumedSessionAt)}` : ''}
+            </span>
+            <span className="h-px flex-1 bg-border" />
+          </div>
+        )}
+        {messages.map((m) => (
+          m.role === 'assistant' && !m.content && !m.versionInfo ? null :
+          <div key={m.id} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
+            {(m.content || m.role === 'user') && (
+              <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
+                m.role === 'user'
+                  ? m.kind === 'action'
+                    ? 'bg-muted text-muted-foreground border border-border rounded-br-md'
+                    : 'bg-primary text-primary-foreground rounded-br-md'
+                  : 'bg-muted text-foreground rounded-bl-md'
+              }`}>
+                {m.image && (() => {
+                  const ft = getFileTypeInfo(m.image);
+                  return ft ? (
+                    <div className="flex items-center gap-2 mb-2 px-2 py-1.5 rounded-lg bg-black/10">
+                      <ft.Icon size={20} />
+                      <span className="text-xs font-medium">{ft.label}</span>
+                    </div>
+                  ) : (
+                    <img src={m.image} alt="" className="max-w-full max-h-32 rounded-lg mb-2" />
+                  );
+                })()}
+                {/* Restored sessions keep only the attachment's name — the
+                    data URI never persists, so a chip stands in for it */}
+                {!m.image && m.imageName && (
+                  <div className="flex items-center gap-2 mb-2 px-2 py-1.5 rounded-lg bg-black/10">
+                    <IconPaperclip size={14} />
+                    <span className="text-xs font-medium truncate max-w-[200px]">{m.imageName}</span>
+                  </div>
+                )}
+                {m.content === 'In Arbeit...' ? (
+                  <span className="flex items-center gap-2 text-muted-foreground">
+                    <IconLoader2 size={14} className="animate-spin" />
+                    In Arbeit...
+                  </span>
+                ) : m.role === 'assistant' ? (
+                  <ChatMarkdown content={m.content} />
+                ) : (
+                  m.content.split('\n').map((line, j) => (
+                    <span key={j}>{line}{j < m.content.split('\n').length - 1 && <br />}</span>
+                  ))
+                )}
+              </div>
+            )}
+            {m.fixContext && (
+              <button
+                type="button"
+                onClick={() => fixError(m.id)}
+                disabled={chatLoading || !!fixingMessageId}
+                className="mt-1.5 inline-flex w-full max-w-[85%] items-center justify-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                <IconWand size={16} />
+                {fixingMessageId === m.id ? 'Wird behoben…' : 'Automatisch beheben'}
+              </button>
+            )}
+            {m.versionInfo && (
+              <div className="mt-1.5 w-full max-w-[85%] rounded-xl border border-border border-l-[3px] border-l-primary bg-card px-3.5 py-2.5">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <IconGitCommit size={14} className="text-primary shrink-0" />
+                  <span className="font-semibold text-foreground">Version {m.versionInfo.version}</span>
+                  <span>{ORIGIN_LABELS[m.versionInfo.origin] || m.versionInfo.origin}</span>
+                </div>
+                {m.versionInfo.summary && (
+                  <div className="mt-1 text-sm font-medium text-foreground">{m.versionInfo.summary}</div>
+                )}
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {devMode && (
+                    <button
+                      type="button"
+                      onClick={() => openCodeDrawerFor(m.versionInfo!.appId, m.versionInfo!.actionIdentifier, { version: m.versionInfo!.version, tab: 'diff' })}
+                      className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                    >
+                      Änderungen ansehen
+                    </button>
+                  )}
+                  {m.versionInfo.version > 1 && (
+                    <button
+                      type="button"
+                      disabled={chatLoading}
+                      onClick={() => revertActionVersion(m.versionInfo!.appId, m.versionInfo!.actionIdentifier, m.versionInfo!.version - 1)}
+                      className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+                    >
+                      Rückgängig
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+        {chatLoading && messages.length > 0 && messages[messages.length - 1].content !== 'In Arbeit...' && messages[messages.length - 1].role === 'assistant' && messages[messages.length - 1].content === '' && (
+          <div className="flex justify-start">
+            <div className="bg-muted rounded-2xl rounded-bl-md px-3.5 py-2.5 flex items-center gap-2 text-sm text-muted-foreground">
+              <IconLoader2 size={14} className="animate-spin" />
+              Denkt nach...
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Attachment preview */}
+      {image && (
+        <div className="px-4 py-2">
+          <div className="relative inline-block">
+            {(() => {
+              const ft = getFileTypeInfo(image);
+              return ft ? (
+                <div className="h-16 px-4 rounded-lg border border-border bg-muted flex items-center gap-2">
+                  <ft.Icon size={24} className={`${ft.color} shrink-0`} />
+                  <span className="text-xs font-medium truncate max-w-[200px]">{fileName || ft.label}</span>
+                </div>
+              ) : (
+                <img src={image} alt="" className="h-16 rounded-lg border border-border" />
+              );
+            })()}
+            <button
+              onClick={() => { setImage(null); setFileName(null); }}
+              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-white flex items-center justify-center"
+            >
+              <IconX size={10} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Input */}
+      <div className="px-2.5 py-2 border-t border-border bg-card safe-area-pb">
+        <div className="flex items-end gap-1.5">
+          <button
+            onClick={() => fileRef.current?.click()}
+            className="shrink-0 p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            title="Datei anhängen"
+          >
+            <IconPaperclip size={16} />
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*,.pdf,application/pdf,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            onChange={handleFile}
+            className="hidden"
+          />
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            rows={1}
+            style={{ fieldSizing: 'content', maxHeight: '4.5rem' } as React.CSSProperties}
+            className="flex-1 resize-none bg-muted rounded-xl px-3 py-2 text-base sm:text-sm outline-none border-0 placeholder:text-muted-foreground/60 overflow-y-auto"
+          />
+          <button
+            onClick={handleSend}
+            disabled={chatLoading || !!runningActionId || (!input.trim() && !image)}
+            className="shrink-0 p-2 rounded-lg bg-primary text-primary-foreground disabled:opacity-40 hover:bg-primary/90 transition-colors"
+          >
+            <IconSend size={16} />
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ChatWidget — floating button + panel chrome around the ChatPanel
+// ---------------------------------------------------------------------------
+
+export default function ChatWidget() {
+  const { chatOpen, setChatOpen, codeDrawerAction, newChatSession } = useActions();
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  // 'history' swaps the panel body for the session list — same surface,
+  // no second panel, back arrow returns to the conversation
+  const [view, setView] = useState<'chat' | 'history'>('chat');
+
+  useEffect(() => {
+    if (!chatOpen) {
+      setIsFullscreen(false);
+      setView('chat');
+    }
+  }, [chatOpen]);
+
+  // While the code drawer is open, its chat dock is the single chat surface —
+  // the floating widget stays out of the way (same conversation either way).
+  if (codeDrawerAction) return null;
 
   return (
     <>
@@ -435,13 +773,44 @@ export default function ChatWidget() {
         }`}>
           {/* Header */}
           <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-card shrink-0">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                <IconSparkles size={12} className="text-primary" />
+            {view === 'history' ? (
+              <div className="flex items-center gap-2 min-w-0">
+                <button
+                  onClick={() => setView('chat')}
+                  className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  title="Assistent"
+                >
+                  <IconArrowLeft size={14} />
+                </button>
+                <span className="text-sm font-semibold text-foreground truncate">Verlauf</span>
               </div>
-              <span className="text-sm font-semibold text-foreground truncate">Assistent</span>
-            </div>
+            ) : (
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <IconSparkles size={12} className="text-primary" />
+                </div>
+                <span className="text-sm font-semibold text-foreground truncate">Assistent</span>
+              </div>
+            )}
             <div className="flex items-center gap-0.5 shrink-0">
+              {view === 'chat' && (
+                <button
+                  onClick={() => setView('history')}
+                  className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  title="Verlauf"
+                >
+                  <IconHistory size={14} />
+                </button>
+              )}
+              {/* New chat is reachable from BOTH views — from the history it
+                  starts fresh and returns to the conversation */}
+              <button
+                onClick={() => { newChatSession(); setView('chat'); }}
+                className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                title="Neuer Chat"
+              >
+                <IconMessagePlus size={14} />
+              </button>
               <button
                 onClick={() => setIsFullscreen(!isFullscreen)}
                 className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
@@ -458,119 +827,11 @@ export default function ChatWidget() {
             </div>
           </div>
 
-          {/* Messages */}
-          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-            {messages.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-full text-center gap-2 text-muted-foreground">
-                <IconSparkles size={28} stroke={1.5} />
-                <p className="text-xs">Frage stellen oder Bild hochladen...</p>
-              </div>
-            )}
-            {messages.map((m) => (
-              m.role === 'assistant' && !m.content ? null :
-              <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
-                  m.role === 'user'
-                    ? 'bg-primary text-primary-foreground rounded-br-md'
-                    : 'bg-muted text-foreground rounded-bl-md'
-                }`}>
-                  {m.image && (() => {
-                    const ft = getFileTypeInfo(m.image);
-                    return ft ? (
-                      <div className="flex items-center gap-2 mb-2 px-2 py-1.5 rounded-lg bg-black/10">
-                        <ft.Icon size={20} />
-                        <span className="text-xs font-medium">{ft.label}</span>
-                      </div>
-                    ) : (
-                      <img src={m.image} alt="" className="max-w-full max-h-32 rounded-lg mb-2" />
-                    );
-                  })()}
-                  {m.content === 'In Arbeit...' ? (
-                    <span className="flex items-center gap-2 text-muted-foreground">
-                      <IconLoader2 size={14} className="animate-spin" />
-                      In Arbeit...
-                    </span>
-                  ) : m.role === 'assistant' ? (
-                    <ChatMarkdown content={m.content} />
-                  ) : (
-                    m.content.split('\n').map((line, j) => (
-                      <span key={j}>{line}{j < m.content.split('\n').length - 1 && <br />}</span>
-                    ))
-                  )}
-                </div>
-              </div>
-            ))}
-            {chatLoading && messages.length > 0 && messages[messages.length - 1].content !== 'In Arbeit...' && messages[messages.length - 1].role === 'assistant' && messages[messages.length - 1].content === '' && (
-              <div className="flex justify-start">
-                <div className="bg-muted rounded-2xl rounded-bl-md px-3.5 py-2.5 flex items-center gap-2 text-sm text-muted-foreground">
-                  <IconLoader2 size={14} className="animate-spin" />
-                  Denkt nach...
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Attachment preview */}
-          {image && (
-            <div className="px-4 py-2">
-              <div className="relative inline-block">
-                {(() => {
-                  const ft = getFileTypeInfo(image);
-                  return ft ? (
-                    <div className="h-16 px-4 rounded-lg border border-border bg-muted flex items-center gap-2">
-                      <ft.Icon size={24} className={`${ft.color} shrink-0`} />
-                      <span className="text-xs font-medium truncate max-w-[200px]">{fileName || ft.label}</span>
-                    </div>
-                  ) : (
-                    <img src={image} alt="" className="h-16 rounded-lg border border-border" />
-                  );
-                })()}
-                <button
-                  onClick={() => { setImage(null); setFileName(null); }}
-                  className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-white flex items-center justify-center"
-                >
-                  <IconX size={10} />
-                </button>
-              </div>
-            </div>
+          {view === 'history' ? (
+            <ChatHistoryList onSelect={() => setView('chat')} />
+          ) : (
+            <ChatPanel autoFocus={chatOpen} />
           )}
-
-          {/* Input */}
-          <div className="px-2.5 py-2 border-t border-border bg-card safe-area-pb">
-            <div className="flex items-end gap-1.5">
-              <button
-                onClick={() => fileRef.current?.click()}
-                className="shrink-0 p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                title="Datei anhängen"
-              >
-                <IconPaperclip size={16} />
-              </button>
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*,.pdf,application/pdf,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                onChange={handleFile}
-                className="hidden"
-              />
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Frage stellen oder Bild hochladen..."
-                rows={1}
-                style={{ fieldSizing: 'content', maxHeight: '4.5rem' } as React.CSSProperties}
-                className="flex-1 resize-none bg-muted rounded-xl px-3 py-2 text-base sm:text-sm outline-none border-0 placeholder:text-muted-foreground/60 overflow-y-auto"
-              />
-              <button
-                onClick={handleSend}
-                disabled={chatLoading || (!input.trim() && !image)}
-                className="shrink-0 p-2 rounded-lg bg-primary text-primary-foreground disabled:opacity-40 hover:bg-primary/90 transition-colors"
-              >
-                <IconSend size={16} />
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </>

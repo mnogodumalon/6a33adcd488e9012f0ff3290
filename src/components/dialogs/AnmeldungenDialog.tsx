@@ -142,6 +142,12 @@ export function AnmeldungenDialog({ open, onClose, onSubmit, defaultValues, reco
     setCreateTeilnehmerInitial(q);
     setCreateTeilnehmerOpen(true);
   }
+  const [showErrors, setShowErrors] = useState(false);
+  const REQUIRED_FIELDS = ['kurstermin', 'teilnehmer', 'anmeldedatum', 'status'] as const;
+  const missingRequired = REQUIRED_FIELDS.filter(k => {
+    const v = (fields as Record<string, unknown>)[k];
+    return v == null || v === '' || (Array.isArray(v) && v.length === 0);
+  });
   const [aiOpen, setAiOpen] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanSuccess, setScanSuccess] = useState(false);
@@ -226,6 +232,10 @@ export function AnmeldungenDialog({ open, onClose, onSubmit, defaultValues, reco
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (missingRequired.length > 0) {
+      setShowErrors(true);
+      return;
+    }
     setSaving(true);
     setSubmitError(null);
     try {
@@ -371,7 +381,7 @@ export function AnmeldungenDialog({ open, onClose, onSubmit, defaultValues, reco
   const fieldBlocks: Record<string, React.ReactNode> = {
     'kurstermin': (
       <div key="kurstermin" className="space-y-1.5">
-        <Label htmlFor="kurstermin">Kurstermin</Label>
+        <Label htmlFor="kurstermin">Kurstermin <span className="text-destructive" aria-hidden="true">*</span></Label>
         <Combobox
           id="kurstermin"
           placeholder=""
@@ -386,6 +396,9 @@ export function AnmeldungenDialog({ open, onClose, onSubmit, defaultValues, reco
           onCreateNew={(q) => openCreateKurstermine("kurstermin", q)}
           createLabel="Neu in Kurstermine"
         />
+        {showErrors && !fields.kurstermin && (
+          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+        )}
       </div>
     ),
     'kurs': (
@@ -409,7 +422,7 @@ export function AnmeldungenDialog({ open, onClose, onSubmit, defaultValues, reco
     ),
     'teilnehmer': (
       <div key="teilnehmer" className="space-y-1.5">
-        <Label htmlFor="teilnehmer">Teilnehmer</Label>
+        <Label htmlFor="teilnehmer">Teilnehmer <span className="text-destructive" aria-hidden="true">*</span></Label>
         <Combobox
           id="teilnehmer"
           placeholder=""
@@ -424,23 +437,30 @@ export function AnmeldungenDialog({ open, onClose, onSubmit, defaultValues, reco
           onCreateNew={(q) => openCreateTeilnehmer("teilnehmer", q)}
           createLabel="Neu in Teilnehmer"
         />
+        {showErrors && !fields.teilnehmer && (
+          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+        )}
       </div>
     ),
     'anmeldedatum': (
       <div key="anmeldedatum" className="space-y-1.5">
-        <Label htmlFor="anmeldedatum">Anmeldedatum</Label>
+        <Label htmlFor="anmeldedatum">Anmeldedatum <span className="text-destructive" aria-hidden="true">*</span></Label>
         <DatePicker
           id="anmeldedatum"
           placeholder=""
           mode="datetime"
           value={fields.anmeldedatum ?? null}
           onChange={v => setFields(f => ({ ...f, anmeldedatum: v ?? undefined }))}
+          required
         />
+        {showErrors && !fields.anmeldedatum && (
+          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+        )}
       </div>
     ),
     'status': (
       <div key="status" className="space-y-1.5">
-        <Label htmlFor="status">Status</Label>
+        <Label htmlFor="status">Status <span className="text-destructive" aria-hidden="true">*</span></Label>
         <Select
           value={lookupKey(fields.status) ?? ''}
           onValueChange={v => setFields(f => ({ ...f, status: v === 'none' ? undefined : v as any }))}
@@ -456,6 +476,9 @@ export function AnmeldungenDialog({ open, onClose, onSubmit, defaultValues, reco
             <SelectItem value="nicht_erschienen">Nicht erschienen</SelectItem>
           </SelectContent>
         </Select>
+        {showErrors && !fields.status && (
+          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+        )}
       </div>
     ),
     'bemerkung': (
@@ -824,6 +847,12 @@ export function AnmeldungenDialog({ open, onClose, onSubmit, defaultValues, reco
                 })()}
               </div>
             )}
+            {showErrors && missingRequired.length > 0 && (
+              <p className="text-xs text-destructive flex items-center gap-1.5" role="alert">
+                <IconAlertCircle className="h-3.5 w-3.5 shrink-0" />
+                Bitte fülle die markierten Pflichtfelder aus.
+              </p>
+            )}
             {recordId && (
               <div className="pt-2 border-t border-border">
                 <AttachmentsSection appId={APP_IDS.ANMELDUNGEN} recordId={recordId} />
@@ -841,7 +870,7 @@ export function AnmeldungenDialog({ open, onClose, onSubmit, defaultValues, reco
             <Button
               type="submit"
               className="max-sm:h-12 max-sm:flex-1 max-sm:text-base"
-              disabled={saving || !isDirty}
+              disabled={saving || !isDirty || (showErrors && missingRequired.length > 0)}
             >
               {saving ? 'Speichern...' : defaultValues ? 'Speichern' : 'Erstellen'}
             </Button>

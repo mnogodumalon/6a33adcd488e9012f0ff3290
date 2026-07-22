@@ -73,6 +73,12 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
       return true;
     }
   }, [fields, normalizedDefaults]);
+  const [showErrors, setShowErrors] = useState(false);
+  const REQUIRED_FIELDS = ['raumname', 'raum_typ', 'status', 'online_raum'] as const;
+  const missingRequired = REQUIRED_FIELDS.filter(k => {
+    const v = (fields as Record<string, unknown>)[k];
+    return v == null || v === '' || (Array.isArray(v) && v.length === 0);
+  });
   const [aiOpen, setAiOpen] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanSuccess, setScanSuccess] = useState(false);
@@ -154,6 +160,10 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (missingRequired.length > 0) {
+      setShowErrors(true);
+      return;
+    }
     setSaving(true);
     setSubmitError(null);
     try {
@@ -279,13 +289,17 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
   const fieldBlocks: Record<string, React.ReactNode> = {
     'raumname': (
       <div key="raumname" className="space-y-1.5">
-        <Label htmlFor="raumname">Name des Raums/Orts</Label>
+        <Label htmlFor="raumname">Name des Raums/Orts <span className="text-destructive" aria-hidden="true">*</span></Label>
         <Input
           id="raumname"
           placeholder=""
           value={fields.raumname ?? ''}
           onChange={e => setFields(f => ({ ...f, raumname: e.target.value }))}
+          required
         />
+        {showErrors && !fields.raumname && (
+          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+        )}
       </div>
     ),
     'strasse': (
@@ -360,7 +374,7 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
     ),
     'raum_typ': (
       <div key="raum_typ" className="space-y-1.5">
-        <Label htmlFor="raum_typ">Typ</Label>
+        <Label htmlFor="raum_typ">Typ <span className="text-destructive" aria-hidden="true">*</span></Label>
         <div role="radiogroup" className="flex flex-wrap gap-1.5">
           <button
             type="button"
@@ -389,11 +403,14 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
             Extern
           </button>
         </div>
+        {showErrors && !fields.raum_typ && (
+          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+        )}
       </div>
     ),
     'status': (
       <div key="status" className="space-y-1.5">
-        <Label htmlFor="status">Status</Label>
+        <Label htmlFor="status">Status <span className="text-destructive" aria-hidden="true">*</span></Label>
         <div role="radiogroup" className="flex flex-wrap gap-1.5">
           <button
             type="button"
@@ -422,11 +439,14 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
             Inaktiv
           </button>
         </div>
+        {showErrors && !fields.status && (
+          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+        )}
       </div>
     ),
     'online_raum': (
       <div key="online_raum" className="space-y-1.5">
-        <Label htmlFor="online_raum">Online-Raum</Label>
+        <Label htmlFor="online_raum">Online-Raum <span className="text-destructive" aria-hidden="true">*</span></Label>
         <div role="radiogroup" className="flex flex-wrap gap-1.5">
           <button
             type="button"
@@ -455,6 +475,9 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
             Nein
           </button>
         </div>
+        {showErrors && !fields.online_raum && (
+          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+        )}
       </div>
     ),
     'online_link': (
@@ -833,6 +856,12 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
                 })()}
               </div>
             )}
+            {showErrors && missingRequired.length > 0 && (
+              <p className="text-xs text-destructive flex items-center gap-1.5" role="alert">
+                <IconAlertCircle className="h-3.5 w-3.5 shrink-0" />
+                Bitte fülle die markierten Pflichtfelder aus.
+              </p>
+            )}
             {recordId && (
               <div className="pt-2 border-t border-border">
                 <AttachmentsSection appId={APP_IDS.RAEUME_UND_ORTE} recordId={recordId} />
@@ -850,7 +879,7 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
             <Button
               type="submit"
               className="max-sm:h-12 max-sm:flex-1 max-sm:text-base"
-              disabled={saving || !isDirty}
+              disabled={saving || !isDirty || (showErrors && missingRequired.length > 0)}
             >
               {saving ? 'Speichern...' : defaultValues ? 'Speichern' : 'Erstellen'}
             </Button>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import type { RaeumeUndOrte, Trainer, Kurse, Anmeldungen, Teilnehmer, Kurstermine } from '@/types/app';
+import type { Trainer, Teilnehmer, RaeumeUndOrte, Kurstermine, Kurse, Anmeldungen } from '@/types/app';
 import { LivingAppsService } from '@/services/livingAppsService';
 
 /** Dashboard data + the OPTIMISTIC-WRITE API.
@@ -13,32 +13,32 @@ import { LivingAppsService } from '@/services/livingAppsService';
  *  There is no other mechanism (no `__optimistic`, no `mutate`).
  */
 export function useDashboardData() {
-  const [raeumeUndOrte, setRaeumeUndOrte] = useState<RaeumeUndOrte[]>([]);
   const [trainer, setTrainer] = useState<Trainer[]>([]);
+  const [teilnehmer, setTeilnehmer] = useState<Teilnehmer[]>([]);
+  const [raeumeUndOrte, setRaeumeUndOrte] = useState<RaeumeUndOrte[]>([]);
+  const [kurstermine, setKurstermine] = useState<Kurstermine[]>([]);
   const [kurse, setKurse] = useState<Kurse[]>([]);
   const [anmeldungen, setAnmeldungen] = useState<Anmeldungen[]>([]);
-  const [teilnehmer, setTeilnehmer] = useState<Teilnehmer[]>([]);
-  const [kurstermine, setKurstermine] = useState<Kurstermine[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   const fetchAll = useCallback(async () => {
     setError(null);
     try {
-      const [raeumeUndOrteData, trainerData, kurseData, anmeldungenData, teilnehmerData, kurstermineData] = await Promise.all([
-        LivingAppsService.getRaeumeUndOrte(),
+      const [trainerData, teilnehmerData, raeumeUndOrteData, kurstermineData, kurseData, anmeldungenData] = await Promise.all([
         LivingAppsService.getTrainer(),
+        LivingAppsService.getTeilnehmer(),
+        LivingAppsService.getRaeumeUndOrte(),
+        LivingAppsService.getKurstermine(),
         LivingAppsService.getKurse(),
         LivingAppsService.getAnmeldungen(),
-        LivingAppsService.getTeilnehmer(),
-        LivingAppsService.getKurstermine(),
       ]);
-      setRaeumeUndOrte(raeumeUndOrteData);
       setTrainer(trainerData);
+      setTeilnehmer(teilnehmerData);
+      setRaeumeUndOrte(raeumeUndOrteData);
+      setKurstermine(kurstermineData);
       setKurse(kurseData);
       setAnmeldungen(anmeldungenData);
-      setTeilnehmer(teilnehmerData);
-      setKurstermine(kurstermineData);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Fehler beim Laden der Daten'));
     } finally {
@@ -52,20 +52,20 @@ export function useDashboardData() {
   useEffect(() => {
     async function silentRefresh() {
       try {
-        const [raeumeUndOrteData, trainerData, kurseData, anmeldungenData, teilnehmerData, kurstermineData] = await Promise.all([
-          LivingAppsService.getRaeumeUndOrte(),
+        const [trainerData, teilnehmerData, raeumeUndOrteData, kurstermineData, kurseData, anmeldungenData] = await Promise.all([
           LivingAppsService.getTrainer(),
+          LivingAppsService.getTeilnehmer(),
+          LivingAppsService.getRaeumeUndOrte(),
+          LivingAppsService.getKurstermine(),
           LivingAppsService.getKurse(),
           LivingAppsService.getAnmeldungen(),
-          LivingAppsService.getTeilnehmer(),
-          LivingAppsService.getKurstermine(),
         ]);
-        setRaeumeUndOrte(raeumeUndOrteData);
         setTrainer(trainerData);
+        setTeilnehmer(teilnehmerData);
+        setRaeumeUndOrte(raeumeUndOrteData);
+        setKurstermine(kurstermineData);
         setKurse(kurseData);
         setAnmeldungen(anmeldungenData);
-        setTeilnehmer(teilnehmerData);
-        setKurstermine(kurstermineData);
       } catch {
         // silently ignore — stale data is better than no data
       }
@@ -75,23 +75,11 @@ export function useDashboardData() {
     return () => window.removeEventListener('dashboard-refresh', handleRefresh);
   }, []);
 
-  const raeumeUndOrteMap = useMemo(() => {
-    const m = new Map<string, RaeumeUndOrte>();
-    raeumeUndOrte.forEach(r => m.set(r.record_id, r));
-    return m;
-  }, [raeumeUndOrte]);
-
   const trainerMap = useMemo(() => {
     const m = new Map<string, Trainer>();
     trainer.forEach(r => m.set(r.record_id, r));
     return m;
   }, [trainer]);
-
-  const kurseMap = useMemo(() => {
-    const m = new Map<string, Kurse>();
-    kurse.forEach(r => m.set(r.record_id, r));
-    return m;
-  }, [kurse]);
 
   const teilnehmerMap = useMemo(() => {
     const m = new Map<string, Teilnehmer>();
@@ -99,11 +87,23 @@ export function useDashboardData() {
     return m;
   }, [teilnehmer]);
 
+  const raeumeUndOrteMap = useMemo(() => {
+    const m = new Map<string, RaeumeUndOrte>();
+    raeumeUndOrte.forEach(r => m.set(r.record_id, r));
+    return m;
+  }, [raeumeUndOrte]);
+
   const kurstermineMap = useMemo(() => {
     const m = new Map<string, Kurstermine>();
     kurstermine.forEach(r => m.set(r.record_id, r));
     return m;
   }, [kurstermine]);
 
-  return { raeumeUndOrte, setRaeumeUndOrte, trainer, setTrainer, kurse, setKurse, anmeldungen, setAnmeldungen, teilnehmer, setTeilnehmer, kurstermine, setKurstermine, loading, error, fetchAll, raeumeUndOrteMap, trainerMap, kurseMap, teilnehmerMap, kurstermineMap };
+  const kurseMap = useMemo(() => {
+    const m = new Map<string, Kurse>();
+    kurse.forEach(r => m.set(r.record_id, r));
+    return m;
+  }, [kurse]);
+
+  return { trainer, setTrainer, teilnehmer, setTeilnehmer, raeumeUndOrte, setRaeumeUndOrte, kurstermine, setKurstermine, kurse, setKurse, anmeldungen, setAnmeldungen, loading, error, fetchAll, trainerMap, teilnehmerMap, raeumeUndOrteMap, kurstermineMap, kurseMap };
 }

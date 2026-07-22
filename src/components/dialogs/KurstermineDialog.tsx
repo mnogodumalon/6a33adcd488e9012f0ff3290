@@ -138,6 +138,12 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
     setCreateTrainerInitial(q);
     setCreateTrainerOpen(true);
   }
+  const [showErrors, setShowErrors] = useState(false);
+  const REQUIRED_FIELDS = ['kurs', 'startdatum', 'enddatum', 'anmeldefrist', 'status'] as const;
+  const missingRequired = REQUIRED_FIELDS.filter(k => {
+    const v = (fields as Record<string, unknown>)[k];
+    return v == null || v === '' || (Array.isArray(v) && v.length === 0);
+  });
   const [aiOpen, setAiOpen] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanSuccess, setScanSuccess] = useState(false);
@@ -222,6 +228,10 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (missingRequired.length > 0) {
+      setShowErrors(true);
+      return;
+    }
     setSaving(true);
     setSubmitError(null);
     try {
@@ -386,7 +396,7 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
     ),
     'kurs': (
       <div key="kurs" className="space-y-1.5">
-        <Label htmlFor="kurs">Kurs</Label>
+        <Label htmlFor="kurs">Kurs <span className="text-destructive" aria-hidden="true">*</span></Label>
         <Combobox
           id="kurs"
           placeholder=""
@@ -401,30 +411,41 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
           onCreateNew={(q) => openCreateKurse("kurs", q)}
           createLabel="Neu in Kurse"
         />
+        {showErrors && !fields.kurs && (
+          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+        )}
       </div>
     ),
     'startdatum': (
       <div key="startdatum" className="space-y-1.5">
-        <Label htmlFor="startdatum">Startdatum und -uhrzeit</Label>
+        <Label htmlFor="startdatum">Startdatum und -uhrzeit <span className="text-destructive" aria-hidden="true">*</span></Label>
         <DatePicker
           id="startdatum"
           placeholder=""
           mode="datetime"
           value={fields.startdatum ?? null}
           onChange={v => setFields(f => ({ ...f, startdatum: v ?? undefined }))}
+          required
         />
+        {showErrors && !fields.startdatum && (
+          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+        )}
       </div>
     ),
     'enddatum': (
       <div key="enddatum" className="space-y-1.5">
-        <Label htmlFor="enddatum">Enddatum und -uhrzeit</Label>
+        <Label htmlFor="enddatum">Enddatum und -uhrzeit <span className="text-destructive" aria-hidden="true">*</span></Label>
         <DatePicker
           id="enddatum"
           placeholder=""
           mode="datetime"
           value={fields.enddatum ?? null}
           onChange={v => setFields(f => ({ ...f, enddatum: v ?? undefined }))}
+          required
         />
+        {showErrors && !fields.enddatum && (
+          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+        )}
       </div>
     ),
     'ort': (
@@ -450,14 +471,18 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
     ),
     'anmeldefrist': (
       <div key="anmeldefrist" className="space-y-1.5">
-        <Label htmlFor="anmeldefrist">Anmeldefrist</Label>
+        <Label htmlFor="anmeldefrist">Anmeldefrist <span className="text-destructive" aria-hidden="true">*</span></Label>
         <DatePicker
           id="anmeldefrist"
           placeholder=""
           mode="date"
           value={fields.anmeldefrist ?? null}
           onChange={v => setFields(f => ({ ...f, anmeldefrist: v ?? undefined }))}
+          required
         />
+        {showErrors && !fields.anmeldefrist && (
+          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+        )}
       </div>
     ),
     'trainer': (
@@ -495,7 +520,7 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
     ),
     'status': (
       <div key="status" className="space-y-1.5">
-        <Label htmlFor="status">Status</Label>
+        <Label htmlFor="status">Status <span className="text-destructive" aria-hidden="true">*</span></Label>
         <div role="radiogroup" className="flex flex-wrap gap-1.5">
           <button
             type="button"
@@ -563,6 +588,9 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
             Abgesagt
           </button>
         </div>
+        {showErrors && !fields.status && (
+          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+        )}
       </div>
     ),
   };
@@ -919,6 +947,12 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
                 })()}
               </div>
             )}
+            {showErrors && missingRequired.length > 0 && (
+              <p className="text-xs text-destructive flex items-center gap-1.5" role="alert">
+                <IconAlertCircle className="h-3.5 w-3.5 shrink-0" />
+                Bitte fülle die markierten Pflichtfelder aus.
+              </p>
+            )}
             {recordId && (
               <div className="pt-2 border-t border-border">
                 <AttachmentsSection appId={APP_IDS.KURSTERMINE} recordId={recordId} />
@@ -936,7 +970,7 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
             <Button
               type="submit"
               className="max-sm:h-12 max-sm:flex-1 max-sm:text-base"
-              disabled={saving || !isDirty}
+              disabled={saving || !isDirty || (showErrors && missingRequired.length > 0)}
             >
               {saving ? 'Speichern...' : defaultValues ? 'Speichern' : 'Erstellen'}
             </Button>

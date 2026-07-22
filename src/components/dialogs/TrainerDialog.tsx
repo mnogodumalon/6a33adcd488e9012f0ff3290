@@ -69,6 +69,12 @@ export function TrainerDialog({ open, onClose, onSubmit, defaultValues, recordId
       return true;
     }
   }, [fields, normalizedDefaults]);
+  const [showErrors, setShowErrors] = useState(false);
+  const REQUIRED_FIELDS = ['vorname', 'nachname', 'email', 'trainer_typ'] as const;
+  const missingRequired = REQUIRED_FIELDS.filter(k => {
+    const v = (fields as Record<string, unknown>)[k];
+    return v == null || v === '' || (Array.isArray(v) && v.length === 0);
+  });
   const [aiOpen, setAiOpen] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanSuccess, setScanSuccess] = useState(false);
@@ -150,6 +156,10 @@ export function TrainerDialog({ open, onClose, onSubmit, defaultValues, recordId
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (missingRequired.length > 0) {
+      setShowErrors(true);
+      return;
+    }
     setSaving(true);
     setSubmitError(null);
     try {
@@ -275,29 +285,37 @@ export function TrainerDialog({ open, onClose, onSubmit, defaultValues, recordId
   const fieldBlocks: Record<string, React.ReactNode> = {
     'vorname': (
       <div key="vorname" className="space-y-1.5">
-        <Label htmlFor="vorname">Vorname</Label>
+        <Label htmlFor="vorname">Vorname <span className="text-destructive" aria-hidden="true">*</span></Label>
         <Input
           id="vorname"
           placeholder=""
           value={fields.vorname ?? ''}
           onChange={e => setFields(f => ({ ...f, vorname: e.target.value }))}
+          required
         />
+        {showErrors && !fields.vorname && (
+          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+        )}
       </div>
     ),
     'nachname': (
       <div key="nachname" className="space-y-1.5">
-        <Label htmlFor="nachname">Nachname</Label>
+        <Label htmlFor="nachname">Nachname <span className="text-destructive" aria-hidden="true">*</span></Label>
         <Input
           id="nachname"
           placeholder=""
           value={fields.nachname ?? ''}
           onChange={e => setFields(f => ({ ...f, nachname: e.target.value }))}
+          required
         />
+        {showErrors && !fields.nachname && (
+          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+        )}
       </div>
     ),
     'email': (
       <div key="email" className="space-y-1.5">
-        <Label htmlFor="email">E-Mail-Adresse</Label>
+        <Label htmlFor="email">E-Mail-Adresse <span className="text-destructive" aria-hidden="true">*</span></Label>
         <Input
           id="email"
           type="email"
@@ -305,11 +323,14 @@ export function TrainerDialog({ open, onClose, onSubmit, defaultValues, recordId
           value={fields.email ?? ''}
           onChange={e => setFields(f => ({ ...f, email: e.target.value }))}
         />
+        {showErrors && !fields.email && (
+          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+        )}
       </div>
     ),
     'trainer_typ': (
       <div key="trainer_typ" className="space-y-1.5">
-        <Label htmlFor="trainer_typ">Trainer-Typ</Label>
+        <Label htmlFor="trainer_typ">Trainer-Typ <span className="text-destructive" aria-hidden="true">*</span></Label>
         <div role="radiogroup" className="flex flex-wrap gap-1.5">
           <button
             type="button"
@@ -338,6 +359,9 @@ export function TrainerDialog({ open, onClose, onSubmit, defaultValues, recordId
             Extern
           </button>
         </div>
+        {showErrors && !fields.trainer_typ && (
+          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+        )}
       </div>
     ),
     'fachgebiete': (
@@ -706,6 +730,12 @@ export function TrainerDialog({ open, onClose, onSubmit, defaultValues, recordId
                 })()}
               </div>
             )}
+            {showErrors && missingRequired.length > 0 && (
+              <p className="text-xs text-destructive flex items-center gap-1.5" role="alert">
+                <IconAlertCircle className="h-3.5 w-3.5 shrink-0" />
+                Bitte fülle die markierten Pflichtfelder aus.
+              </p>
+            )}
             {recordId && (
               <div className="pt-2 border-t border-border">
                 <AttachmentsSection appId={APP_IDS.TRAINER} recordId={recordId} />
@@ -723,7 +753,7 @@ export function TrainerDialog({ open, onClose, onSubmit, defaultValues, recordId
             <Button
               type="submit"
               className="max-sm:h-12 max-sm:flex-1 max-sm:text-base"
-              disabled={saving || !isDirty}
+              disabled={saving || !isDirty || (showErrors && missingRequired.length > 0)}
             >
               {saving ? 'Speichern...' : defaultValues ? 'Speichern' : 'Erstellen'}
             </Button>

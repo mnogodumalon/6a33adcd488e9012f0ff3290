@@ -124,23 +124,25 @@ export default function PublicFormKurstermine() {
 
         <form onSubmit={handleSubmit} className="space-y-5 bg-card rounded-xl border border-border p-6 shadow-md">
           <div className="space-y-2">
-            <Label htmlFor="startdatum">Startdatum und -uhrzeit</Label>
+            <Label htmlFor="startdatum">Startdatum und -uhrzeit *</Label>
             <DatePicker
               id="startdatum"
               placeholder=""
               mode="datetime"
               value={fields.startdatum ?? null}
               onChange={v => setFields(f => ({ ...f, startdatum: v ?? undefined }))}
+              required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="enddatum">Enddatum und -uhrzeit</Label>
+            <Label htmlFor="enddatum">Enddatum und -uhrzeit *</Label>
             <DatePicker
               id="enddatum"
               placeholder=""
               mode="datetime"
               value={fields.enddatum ?? null}
               onChange={v => setFields(f => ({ ...f, enddatum: v ?? undefined }))}
+              required
             />
           </div>
           <div className="space-y-2">
@@ -161,13 +163,14 @@ export default function PublicFormKurstermine() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="anmeldefrist">Anmeldefrist</Label>
+            <Label htmlFor="anmeldefrist">Anmeldefrist *</Label>
             <DatePicker
               id="anmeldefrist"
               placeholder=""
               mode="date"
               value={fields.anmeldefrist ?? null}
               onChange={v => setFields(f => ({ ...f, anmeldefrist: v ?? undefined }))}
+              required
             />
           </div>
           <div className="space-y-2">
@@ -183,7 +186,7 @@ export default function PublicFormKurstermine() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="status">Status</Label>
+            <Label htmlFor="status">Status *</Label>
             <div role="radiogroup" className="flex flex-wrap gap-1.5">
               <button
                 type="button"

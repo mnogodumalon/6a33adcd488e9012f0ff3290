@@ -129,17 +129,18 @@ export default function PublicFormAnmeldungen() {
 
         <form onSubmit={handleSubmit} className="space-y-5 bg-card rounded-xl border border-border p-6 shadow-md">
           <div className="space-y-2">
-            <Label htmlFor="anmeldedatum">Anmeldedatum</Label>
+            <Label htmlFor="anmeldedatum">Anmeldedatum *</Label>
             <DatePicker
               id="anmeldedatum"
               placeholder=""
               mode="datetime"
               value={fields.anmeldedatum ?? null}
               onChange={v => setFields(f => ({ ...f, anmeldedatum: v ?? undefined }))}
+              required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="status">Status</Label>
+            <Label htmlFor="status">Status *</Label>
             <Select
               value={lookupKey(fields.status) ?? ''}
               onValueChange={v => setFields(f => ({ ...f, status: v === 'none' ? undefined : v as any }))}

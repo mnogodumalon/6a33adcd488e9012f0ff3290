@@ -73,6 +73,12 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
       return true;
     }
   }, [fields, normalizedDefaults]);
+  const [showErrors, setShowErrors] = useState(false);
+  const REQUIRED_FIELDS = ['kurstitel', 'kurzbeschreibung', 'kategorie', 'dauer_anzahl', 'dauer_einheit', 'max_teilnehmer', 'status'] as const;
+  const missingRequired = REQUIRED_FIELDS.filter(k => {
+    const v = (fields as Record<string, unknown>)[k];
+    return v == null || v === '' || (Array.isArray(v) && v.length === 0);
+  });
   const [aiOpen, setAiOpen] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanSuccess, setScanSuccess] = useState(false);
@@ -154,6 +160,10 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (missingRequired.length > 0) {
+      setShowErrors(true);
+      return;
+    }
     setSaving(true);
     setSubmitError(null);
     try {
@@ -279,18 +289,22 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
   const fieldBlocks: Record<string, React.ReactNode> = {
     'kurstitel': (
       <div key="kurstitel" className="space-y-1.5">
-        <Label htmlFor="kurstitel">Kurstitel</Label>
+        <Label htmlFor="kurstitel">Kurstitel <span className="text-destructive" aria-hidden="true">*</span></Label>
         <Input
           id="kurstitel"
           placeholder=""
           value={fields.kurstitel ?? ''}
           onChange={e => setFields(f => ({ ...f, kurstitel: e.target.value }))}
+          required
         />
+        {showErrors && !fields.kurstitel && (
+          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+        )}
       </div>
     ),
     'kurzbeschreibung': (
       <div key="kurzbeschreibung" className="space-y-1.5">
-        <Label htmlFor="kurzbeschreibung">Kurzbeschreibung</Label>
+        <Label htmlFor="kurzbeschreibung">Kurzbeschreibung <span className="text-destructive" aria-hidden="true">*</span></Label>
         <Textarea
           id="kurzbeschreibung"
           placeholder=""
@@ -298,6 +312,9 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
           onChange={e => setFields(f => ({ ...f, kurzbeschreibung: e.target.value }))}
           rows={3}
         />
+        {showErrors && !fields.kurzbeschreibung && (
+          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+        )}
       </div>
     ),
     'detaillierte_beschreibung': (
@@ -314,7 +331,7 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
     ),
     'kategorie': (
       <div key="kategorie" className="space-y-1.5">
-        <Label htmlFor="kategorie">Kategorie</Label>
+        <Label htmlFor="kategorie">Kategorie <span className="text-destructive" aria-hidden="true">*</span></Label>
         <div role="radiogroup" className="flex flex-wrap gap-1.5">
           <button
             type="button"
@@ -369,11 +386,14 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
             Sonstiges
           </button>
         </div>
+        {showErrors && !fields.kategorie && (
+          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+        )}
       </div>
     ),
     'dauer_anzahl': (
       <div key="dauer_anzahl" className="space-y-1.5">
-        <Label htmlFor="dauer_anzahl">Dauer (Anzahl)</Label>
+        <Label htmlFor="dauer_anzahl">Dauer (Anzahl) <span className="text-destructive" aria-hidden="true">*</span></Label>
         <Input
           id="dauer_anzahl"
           type="number"
@@ -383,11 +403,14 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
           value={fields.dauer_anzahl !== undefined ? fields.dauer_anzahl : (computedValues['dauer_anzahl'] ?? '')}
           onChange={e => setFields(f => ({ ...f, dauer_anzahl: clampNumberValue(formEnhancements, 'dauer_anzahl', e.target.value) }))}
         />
+        {showErrors && !fields.dauer_anzahl && (
+          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+        )}
       </div>
     ),
     'dauer_einheit': (
       <div key="dauer_einheit" className="space-y-1.5">
-        <Label htmlFor="dauer_einheit">Dauer (Einheit)</Label>
+        <Label htmlFor="dauer_einheit">Dauer (Einheit) <span className="text-destructive" aria-hidden="true">*</span></Label>
         <div role="radiogroup" className="flex flex-wrap gap-1.5">
           <button
             type="button"
@@ -416,6 +439,9 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
             Tage
           </button>
         </div>
+        {showErrors && !fields.dauer_einheit && (
+          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+        )}
       </div>
     ),
     'zielgruppe': (
@@ -431,7 +457,7 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
     ),
     'max_teilnehmer': (
       <div key="max_teilnehmer" className="space-y-1.5">
-        <Label htmlFor="max_teilnehmer">Maximale Teilnehmerzahl</Label>
+        <Label htmlFor="max_teilnehmer">Maximale Teilnehmerzahl <span className="text-destructive" aria-hidden="true">*</span></Label>
         <Input
           id="max_teilnehmer"
           type="number"
@@ -441,11 +467,14 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
           value={fields.max_teilnehmer !== undefined ? fields.max_teilnehmer : (computedValues['max_teilnehmer'] ?? '')}
           onChange={e => setFields(f => ({ ...f, max_teilnehmer: clampNumberValue(formEnhancements, 'max_teilnehmer', e.target.value) }))}
         />
+        {showErrors && !fields.max_teilnehmer && (
+          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+        )}
       </div>
     ),
     'status': (
       <div key="status" className="space-y-1.5">
-        <Label htmlFor="status">Status</Label>
+        <Label htmlFor="status">Status <span className="text-destructive" aria-hidden="true">*</span></Label>
         <div role="radiogroup" className="flex flex-wrap gap-1.5">
           <button
             type="button"
@@ -500,6 +529,9 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
             Archiviert
           </button>
         </div>
+        {showErrors && !fields.status && (
+          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+        )}
       </div>
     ),
   };
@@ -856,6 +888,12 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
                 })()}
               </div>
             )}
+            {showErrors && missingRequired.length > 0 && (
+              <p className="text-xs text-destructive flex items-center gap-1.5" role="alert">
+                <IconAlertCircle className="h-3.5 w-3.5 shrink-0" />
+                Bitte fülle die markierten Pflichtfelder aus.
+              </p>
+            )}
             {recordId && (
               <div className="pt-2 border-t border-border">
                 <AttachmentsSection appId={APP_IDS.KURSE} recordId={recordId} />
@@ -873,7 +911,7 @@ export function KurseDialog({ open, onClose, onSubmit, defaultValues, recordId, 
             <Button
               type="submit"
               className="max-sm:h-12 max-sm:flex-1 max-sm:text-base"
-              disabled={saving || !isDirty}
+              disabled={saving || !isDirty || (showErrors && missingRequired.length > 0)}
             >
               {saving ? 'Speichern...' : defaultValues ? 'Speichern' : 'Erstellen'}
             </Button>

@@ -1,3 +1,17 @@
+/**
+ * TeilnehmerDialog — pre-generated create/edit dialog for Teilnehmer.
+ *
+ * Props: open, onClose, onSubmit(fields) => Promise<void>, defaultValues?,
+ * recordId? (pass when EDITING — enables the attachments section),
+ * enablePhotoScan?, enablePhotoLocation?.
+ *
+ * defaultValues is SHAPE-TOLERANT and its prop type is the EXPORTED
+ * TeilnehmerDialogDefaults — NOT the entity field type: lookup fields accept
+ * the bare KEY string (or LookupValue), applookup fields the bare record id
+ * (or record URL); the dialog normalizes. Type prefill STATE with the export:
+ *  ❌ useState<Partial<Teilnehmer['fields']>>({ … })   // LookupValue fields reject string prefills (TS2322)
+ *  ✓ useState<TeilnehmerDialogDefaults | undefined>(undefined)
+ */
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import type { Teilnehmer, LookupValue } from '@/types/app';
 import { APP_IDS, LOOKUP_OPTIONS } from '@/types/app';
@@ -13,11 +27,18 @@ import type { ComputedContext } from '@/config/form-enhancements/types';
 import { applyFieldOrder, flattenFieldOrder, applyDefaults, evalComputed, numberInputProps, clampNumberValue, classifyComputed, extractApplookupRefs, mergeApplookupRefs, resolveApplookupRef } from '@/config/form-enhancements/types';
 import { formEnhancements, computedDeps, computedApplookupRefs } from '@/config/form-enhancements/Teilnehmer';
 import { AttachmentsSection } from '@/components/AttachmentsSection';
+import { requiredMessage } from '@/lib/journey/messages';
+import { t, appLabel, fieldLabel, lookupLabel, localeTag, CURRENCY } from '@/i18n';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { IconAlertCircle, IconCamera, IconChevronDown, IconCircleCheck, IconClipboard, IconFileText, IconLoader2, IconPhotoPlus, IconSparkles, IconUpload, IconX } from '@tabler/icons-react';
 import { fileToDataUri, extractFromInput, extractPhotoMeta, reverseGeocode } from '@/lib/ai';
 import { lookupKey } from '@/lib/formatters';
+
+/** Widened prefill type for TeilnehmerDialog.defaultValues — see file header. */
+export type TeilnehmerDialogDefaults = Omit<Teilnehmer['fields'], 'aktiv_status'> & {
+    aktiv_status?: LookupValue | string;
+  };
 
 interface TeilnehmerDialogProps {
   open: boolean;
@@ -26,9 +47,7 @@ interface TeilnehmerDialogProps {
   /** SHAPE-TOLERANT: lookup fields accept the bare key (string) or the
    *  LookupValue object; applookup fields the bare record id or the full
    *  record URL — the dialog normalizes both. */
-  defaultValues?: Omit<Teilnehmer['fields'], 'aktiv_status'> & {
-    aktiv_status?: LookupValue | string;
-  };
+  defaultValues?: TeilnehmerDialogDefaults;
   /** Record id when editing — enables the attachments section. Omit on create. */
   recordId?: string;
   enablePhotoScan?: boolean;
@@ -69,6 +88,8 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
       return true;
     }
   }, [fields, normalizedDefaults]);
+  // Fields the plan assigns to a tool (empty without a plan).
+  const SYSTEM_ASSIGNED: string[] = [];
   const [showErrors, setShowErrors] = useState(false);
   const REQUIRED_FIELDS = ['vorname', 'nachname', 'email', 'aktiv_status'] as const;
   const missingRequired = REQUIRED_FIELDS.filter(k => {
@@ -181,7 +202,7 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
       await onSubmit(clean as Teilnehmer['fields']);
       onClose();
     } catch (err) {
-      setSubmitError(err instanceof Error && err.message ? err.message : 'Speichern fehlgeschlagen.');
+      setSubmitError(err instanceof Error && err.message ? err.message : t('submit_error'));
     } finally {
       setSaving(false);
     }
@@ -223,7 +244,7 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
         }
       }
       const photoContext = contextParts.length ? contextParts.join('\n') : undefined;
-      const schema = `{\n  "vorname": string | null, // Vorname\n  "nachname": string | null, // Nachname\n  "email": string | null, // E-Mail-Adresse\n  "firma_abteilung": string | null, // Firma / Abteilung\n  "rolle": string | null, // Rolle im Unternehmen\n  "aktiv_status": LookupValue | null, // Aktiv-Status (select one key: "inaktiv" | "aktiv") mapping: inaktiv=Inaktiv, aktiv=Aktiv\n}`;
+      const schema = `{\n  "vorname": string | null, // Vorname\n  "nachname": string | null, // Nachname\n  "email": string | null, // E-Mail-Adresse\n  "firma_abteilung": string | null, // Firma / Abteilung\n  "rolle": string | null, // Rolle im Unternehmen\n  "aktiv_status": LookupValue | null, // Aktiv-Status (select one key: "aktiv" | "inaktiv") mapping: aktiv=Aktiv, inaktiv=Inaktiv\n}`;
       const raw = await extractFromInput<Record<string, unknown>>(schema, {
         dataUri: uri,
         userText: aiText.trim() || undefined,
@@ -245,7 +266,7 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
       setScanSuccess(true);
       setTimeout(() => setScanSuccess(false), 3000);
     } catch (err) {
-      console.error('Scan fehlgeschlagen:', err);
+      console.error(`${t('scan_error')}:`, err);
       alert(err instanceof Error ? err.message : String(err));
     } finally {
       setScanning(false);
@@ -280,12 +301,14 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
     }
   }, []);
 
-  const DIALOG_INTENT = defaultValues ? 'Teilnehmer bearbeiten' : 'Teilnehmer hinzufügen';
+  const DIALOG_INTENT = defaultValues
+    ? t('edit_entity', { entity: appLabel('teilnehmer') })
+    : t('new_entity', { entity: appLabel('teilnehmer') });
 
   const fieldBlocks: Record<string, React.ReactNode> = {
     'vorname': (
       <div key="vorname" className="space-y-1.5">
-        <Label htmlFor="vorname">Vorname <span className="text-destructive" aria-hidden="true">*</span></Label>
+        <Label htmlFor="vorname">{fieldLabel('teilnehmer', 'vorname')} <span className="text-destructive" aria-hidden="true">*</span></Label>
         <Input
           id="vorname"
           placeholder=""
@@ -294,13 +317,13 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
           required
         />
         {showErrors && !fields.vorname && (
-          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+          <p className="text-xs text-destructive mt-1" role="alert">{requiredMessage('teilnehmer', 'vorname')}</p>
         )}
       </div>
     ),
     'nachname': (
       <div key="nachname" className="space-y-1.5">
-        <Label htmlFor="nachname">Nachname <span className="text-destructive" aria-hidden="true">*</span></Label>
+        <Label htmlFor="nachname">{fieldLabel('teilnehmer', 'nachname')} <span className="text-destructive" aria-hidden="true">*</span></Label>
         <Input
           id="nachname"
           placeholder=""
@@ -309,28 +332,30 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
           required
         />
         {showErrors && !fields.nachname && (
-          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+          <p className="text-xs text-destructive mt-1" role="alert">{requiredMessage('teilnehmer', 'nachname')}</p>
         )}
       </div>
     ),
     'email': (
       <div key="email" className="space-y-1.5">
-        <Label htmlFor="email">E-Mail-Adresse <span className="text-destructive" aria-hidden="true">*</span></Label>
+        <Label htmlFor="email">{fieldLabel('teilnehmer', 'email')} <span className="text-destructive" aria-hidden="true">*</span></Label>
         <Input
           id="email"
           type="email"
+          inputMode="email"
           placeholder=""
           value={fields.email ?? ''}
           onChange={e => setFields(f => ({ ...f, email: e.target.value }))}
+          required
         />
         {showErrors && !fields.email && (
-          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+          <p className="text-xs text-destructive mt-1" role="alert">{requiredMessage('teilnehmer', 'email')}</p>
         )}
       </div>
     ),
     'firma_abteilung': (
       <div key="firma_abteilung" className="space-y-1.5">
-        <Label htmlFor="firma_abteilung">Firma / Abteilung</Label>
+        <Label htmlFor="firma_abteilung">{fieldLabel('teilnehmer', 'firma_abteilung')}</Label>
         <Input
           id="firma_abteilung"
           placeholder=""
@@ -341,7 +366,7 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
     ),
     'rolle': (
       <div key="rolle" className="space-y-1.5">
-        <Label htmlFor="rolle">Rolle im Unternehmen</Label>
+        <Label htmlFor="rolle">{fieldLabel('teilnehmer', 'rolle')}</Label>
         <Input
           id="rolle"
           placeholder=""
@@ -352,21 +377,8 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
     ),
     'aktiv_status': (
       <div key="aktiv_status" className="space-y-1.5">
-        <Label htmlFor="aktiv_status">Aktiv-Status <span className="text-destructive" aria-hidden="true">*</span></Label>
+        <Label htmlFor="aktiv_status">{fieldLabel('teilnehmer', 'aktiv_status')} <span className="text-destructive" aria-hidden="true">*</span></Label>
         <div role="radiogroup" className="flex flex-wrap gap-1.5">
-          <button
-            type="button"
-            role="radio"
-            aria-checked={lookupKey(fields.aktiv_status) === 'inaktiv'}
-            onClick={() => setFields(f => ({ ...f, aktiv_status: (lookupKey(f.aktiv_status) === 'inaktiv' ? undefined : 'inaktiv') as any }))}
-            className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
-              lookupKey(fields.aktiv_status) === 'inaktiv'
-                ? 'bg-foreground text-background border-foreground'
-                : 'bg-background text-foreground border-input hover:bg-accent'
-            }`}
-          >
-            Inaktiv
-          </button>
           <button
             type="button"
             role="radio"
@@ -378,11 +390,24 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
                 : 'bg-background text-foreground border-input hover:bg-accent'
             }`}
           >
-            Aktiv
+            {lookupLabel('teilnehmer', 'aktiv_status', 'aktiv') ?? 'Aktiv'}
+          </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={lookupKey(fields.aktiv_status) === 'inaktiv'}
+            onClick={() => setFields(f => ({ ...f, aktiv_status: (lookupKey(f.aktiv_status) === 'inaktiv' ? undefined : 'inaktiv') as any }))}
+            className={`inline-flex items-center justify-center min-h-9 max-sm:min-h-11 max-sm:px-4 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+              lookupKey(fields.aktiv_status) === 'inaktiv'
+                ? 'bg-foreground text-background border-foreground'
+                : 'bg-background text-foreground border-input hover:bg-accent'
+            }`}
+          >
+            {lookupLabel('teilnehmer', 'aktiv_status', 'inaktiv') ?? 'Inaktiv'}
           </button>
         </div>
         {showErrors && !fields.aktiv_status && (
-          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+          <p className="text-xs text-destructive mt-1" role="alert">{requiredMessage('teilnehmer', 'aktiv_status')}</p>
         )}
       </div>
     ),
@@ -455,9 +480,9 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
     // Backend-Feld mit €-Label ODER virtueller Computed-Key, dessen Name nach Geld aussieht.
     const looksLikeCurrency = CURRENCY_KEYS.has(k) || /(?:kosten|preis|betrag|gesamt|netto|brutto|summe|mwst|rabatt|anzahlung|umsatz|saldo)/i.test(k);
     if (looksLikeCurrency) {
-      return n.toLocaleString('de-DE', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return n.toLocaleString(localeTag(), { style: 'currency', currency: CURRENCY, minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
-    return n.toLocaleString('de-DE', { maximumFractionDigits: 2 });
+    return n.toLocaleString(localeTag(), { maximumFractionDigits: 2 });
   }
 
   return (
@@ -479,14 +504,14 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
               }`}
             >
               <IconSparkles className={`h-3.5 w-3.5 ${aiOpen ? '' : 'text-primary'}`} />
-              <span className="hidden sm:inline">KI-Ausfüllen</span>
+              <span className="hidden sm:inline">{t('smart_fill')}</span>
               <IconChevronDown className={`h-3 w-3 transition-transform ${aiOpen ? 'rotate-180' : ''}`} />
             </button>
           )}
         </DialogHeader>
         {enablePhotoScan && aiOpen && (
           <div id="ai-fill-panel" className="border-b bg-muted/20 px-6 py-4 space-y-3">
-            <p className="text-xs text-muted-foreground">Versteht Fotos, Dokumente und Text und füllt alles für dich aus</p>
+            <p className="text-xs text-muted-foreground">{t('scan_header_sub')}</p>
             <div className="flex items-start gap-2 pl-0.5">
               <Checkbox
                 id="ai-use-personal-info"
@@ -496,21 +521,21 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
               />
               <span className="text-xs text-muted-foreground leading-snug">
                 <Label htmlFor="ai-use-personal-info" className="text-xs font-normal text-muted-foreground cursor-pointer inline">
-                  KI-Assistent darf zusätzlich Informationen zu meiner Person verwenden
+                  {t('useinfo_label')}
                 </Label>
                 {' '}
                 <button type="button" onClick={handleShowProfileInfo} className="text-xs text-primary hover:underline whitespace-nowrap">
-                  {profileLoading ? 'Lade...' : '(mehr Infos)'}
+                  {profileLoading ? t('useinfo_loading') : `(${t('useinfo_more')})`}
                 </button>
               </span>
             </div>
             {showProfileInfo && (
               <div className="rounded-md border bg-muted/50 p-2 text-xs max-h-40 overflow-y-auto">
-                <p className="font-medium mb-1">Folgende Infos über dich können von der KI genutzt werden:</p>
+                <p className="font-medium mb-1">{t('profile_preamble')}</p>
                 {profileData ? Object.values(profileData).map((v, i) => (
                   <span key={i}>{i > 0 && ", "}{typeof v === "object" ? JSON.stringify(v) : String(v)}</span>
                 )) : (
-                  <span className="text-muted-foreground">Profil konnte nicht geladen werden</span>
+                  <span className="text-muted-foreground">{t('useinfo_error')}</span>
                 )}
               </div>
             )}
@@ -541,8 +566,8 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
                     <IconLoader2 className="h-7 w-7 text-primary animate-spin" />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-medium">KI analysiert...</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Felder werden automatisch ausgefüllt</p>
+                    <p className="text-sm font-medium">{t('scan_analyzing')}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{t('scan_analyzing_sub')}</p>
                   </div>
                 </div>
               ) : scanSuccess ? (
@@ -551,8 +576,8 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
                     <IconCircleCheck className="h-7 w-7 text-green-600 dark:text-green-400" />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-medium text-green-700 dark:text-green-400">Felder ausgefüllt!</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Prüfe die Werte und passe sie ggf. an</p>
+                    <p className="text-sm font-medium text-green-700 dark:text-green-400">{t('scan_success')}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{t('scan_success_sub')}</p>
                   </div>
                 </div>
               ) : (
@@ -561,7 +586,7 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
                     <IconPhotoPlus className="h-7 w-7 text-primary/70" />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-medium">Foto oder Dokument hierher ziehen oder auswählen</p>
+                    <p className="text-sm font-medium">{t('scan_upload')}</p>
                   </div>
                 </div>
               )}
@@ -585,11 +610,11 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
             <div className="grid grid-cols-3 gap-2">
               <Button type="button" variant="outline" size="sm" className="h-10 text-xs" disabled={scanning}
                 onClick={e => { e.stopPropagation(); cameraInputRef.current?.click(); }}>
-                <IconCamera className="h-3.5 w-3.5 mr-1" />Kamera
+                <IconCamera className="h-3.5 w-3.5 mr-1" />{t('scan_camera_btn')}
               </Button>
               <Button type="button" variant="outline" size="sm" className="h-10 text-xs" disabled={scanning}
                 onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}>
-                <IconUpload className="h-3.5 w-3.5 mr-1" />Foto wählen
+                <IconUpload className="h-3.5 w-3.5 mr-1" />{t('scan_file_btn')}
               </Button>
               <Button type="button" variant="outline" size="sm" className="h-10 text-xs" disabled={scanning}
                 onClick={e => {
@@ -600,13 +625,13 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
                     setTimeout(() => { if (fileInputRef.current) fileInputRef.current.accept = 'image/*,application/pdf'; }, 100);
                   }
                 }}>
-                <IconFileText className="h-3.5 w-3.5 mr-1" />Dokument
+                <IconFileText className="h-3.5 w-3.5 mr-1" />{t('scan_doc_btn')}
               </Button>
             </div>
 
             <div className="relative">
               <Textarea
-                placeholder="Text eingeben oder einfügen, z.B. Notizen, E-Mails, Beschreibungen..."
+                placeholder={t('scan_text_placeholder')}
                 value={aiText}
                 onChange={e => {
                   setAiText(e.target.value);
@@ -634,7 +659,7 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
                     if (text) setAiText(prev => prev ? prev + '\n' + text : text);
                   } catch {}
                 }}
-                title="Paste"
+                title={t('paste')}
               >
                 <IconClipboard className="h-4 w-4" />
               </button>
@@ -648,7 +673,7 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
                 disabled={scanning}
                 onClick={() => handleAiExtract()}
               >
-                <IconSparkles className="h-3.5 w-3.5 mr-1.5" />Analysieren
+                <IconSparkles className="h-3.5 w-3.5 mr-1.5" />{t('scan_text_analyze')}
               </Button>
             )}
           </div>
@@ -660,9 +685,25 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
               const renderField = (k: string) => {
                 const inlineHints = computedLayout.anchors[k] ?? [];
                 const refs = applookupRefs[k] ?? [];
+                // A field the plan gives to a TOOL. On CREATE it is not shown
+                // at all — the value does not exist yet and typing one only
+                // gets overwritten. On EDIT it stays a normal input with a
+                // note: when a tool could not compose its value (a missing
+                // ingredient), this is the only place to repair the record.
+                if (SYSTEM_ASSIGNED.includes(k) && !recordId) {
+                  return (
+                    <div key={k} className="space-y-1.5 min-w-0">
+                      <Label>{fieldLabel('teilnehmer', k)}</Label>
+                      <p className="text-sm text-muted-foreground">{t('assigned_by_system')}</p>
+                    </div>
+                  );
+                }
                 return (
                   <div key={k} className="space-y-1.5 min-w-0">
                     {fieldBlocks[k]}
+                    {SYSTEM_ASSIGNED.includes(k) && (
+                      <p className="text-xs text-muted-foreground">{t('assigned_by_system')}</p>
+                    )}
                     {refs.map(({ lookupKey }) => {
                       // Show the live numeric value the formula will pull from
                       // the selected lookup target (e.g. "Monatspreis: 34,90 €"
@@ -743,7 +784,7 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
             {showErrors && missingRequired.length > 0 && (
               <p className="text-xs text-destructive flex items-center gap-1.5" role="alert">
                 <IconAlertCircle className="h-3.5 w-3.5 shrink-0" />
-                Bitte fülle die markierten Pflichtfelder aus.
+                {t('missing_required')}
               </p>
             )}
             {recordId && (
@@ -759,13 +800,13 @@ export function TeilnehmerDialog({ open, onClose, onSubmit, defaultValues, recor
             </div>
           )}
           <DialogFooter className="sticky bottom-0 border-t bg-background/95 backdrop-blur px-6 py-3 gap-2 max-sm:flex-row">
-            <Button type="button" variant="outline" onClick={onClose} className="max-sm:h-12 max-sm:flex-1 max-sm:text-base">Abbrechen</Button>
+            <Button type="button" variant="outline" onClick={onClose} className="max-sm:h-12 max-sm:flex-1 max-sm:text-base">{t('cancel')}</Button>
             <Button
               type="submit"
               className="max-sm:h-12 max-sm:flex-1 max-sm:text-base"
               disabled={saving || !isDirty || (showErrors && missingRequired.length > 0)}
             >
-              {saving ? 'Speichern...' : defaultValues ? 'Speichern' : 'Erstellen'}
+              {saving ? t('saving') : defaultValues ? t('save') : t('create')}
             </Button>
           </DialogFooter>
         </form>

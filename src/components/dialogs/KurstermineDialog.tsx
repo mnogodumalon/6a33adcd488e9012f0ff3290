@@ -1,3 +1,20 @@
+/**
+ * KurstermineDialog — pre-generated create/edit dialog for Kurstermine.
+ *
+ * Props: open, onClose, onSubmit(fields) => Promise<void>, defaultValues?,
+ * recordId? (pass when EDITING — enables the attachments section),
+ * raeumeUndOrteList (full hook array — resolves the RaeumeUndOrte applookup),
+ * kurseList (full hook array — resolves the Kurse applookup),
+ * trainerList (full hook array — resolves the Trainer applookup),
+ * enablePhotoScan?, enablePhotoLocation?.
+ *
+ * defaultValues is SHAPE-TOLERANT and its prop type is the EXPORTED
+ * KurstermineDialogDefaults — NOT the entity field type: lookup fields accept
+ * the bare KEY string (or LookupValue), applookup fields the bare record id
+ * (or record URL); the dialog normalizes. Type prefill STATE with the export:
+ *  ❌ useState<Partial<Kurstermine['fields']>>({ … })   // LookupValue fields reject string prefills (TS2322)
+ *  ✓ useState<KurstermineDialogDefaults | undefined>(undefined)
+ */
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import type { Kurstermine, RaeumeUndOrte, Kurse, Trainer, LookupValue } from '@/types/app';
 import { APP_IDS, LOOKUP_OPTIONS } from '@/types/app';
@@ -13,6 +30,8 @@ import type { ComputedContext } from '@/config/form-enhancements/types';
 import { applyFieldOrder, flattenFieldOrder, applyDefaults, evalComputed, numberInputProps, clampNumberValue, classifyComputed, extractApplookupRefs, mergeApplookupRefs, resolveApplookupRef } from '@/config/form-enhancements/types';
 import { formEnhancements, computedDeps, computedApplookupRefs } from '@/config/form-enhancements/Kurstermine';
 import { AttachmentsSection } from '@/components/AttachmentsSection';
+import { requiredMessage } from '@/lib/journey/messages';
+import { t, appLabel, fieldLabel, lookupLabel, localeTag, CURRENCY } from '@/i18n';
 import { Textarea } from '@/components/ui/textarea';
 import { Combobox } from '@/components/Combobox';
 import { RaeumeUndOrteDialog } from '@/components/dialogs/RaeumeUndOrteDialog';
@@ -24,6 +43,11 @@ import { IconAlertCircle, IconCamera, IconChevronDown, IconCircleCheck, IconClip
 import { fileToDataUri, extractFromInput, extractPhotoMeta, reverseGeocode } from '@/lib/ai';
 import { lookupKey } from '@/lib/formatters';
 
+/** Widened prefill type for KurstermineDialog.defaultValues — see file header. */
+export type KurstermineDialogDefaults = Omit<Kurstermine['fields'], 'status'> & {
+    status?: LookupValue | string;
+  };
+
 interface KurstermineDialogProps {
   open: boolean;
   onClose: () => void;
@@ -31,9 +55,7 @@ interface KurstermineDialogProps {
   /** SHAPE-TOLERANT: lookup fields accept the bare key (string) or the
    *  LookupValue object; applookup fields the bare record id or the full
    *  record URL — the dialog normalizes both. */
-  defaultValues?: Omit<Kurstermine['fields'], 'status'> & {
-    status?: LookupValue | string;
-  };
+  defaultValues?: KurstermineDialogDefaults;
   /** Record id when editing — enables the attachments section. Omit on create. */
   recordId?: string;
   raeumeUndOrteList: RaeumeUndOrte[];
@@ -138,6 +160,8 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
     setCreateTrainerInitial(q);
     setCreateTrainerOpen(true);
   }
+  // Fields the plan assigns to a tool (empty without a plan).
+  const SYSTEM_ASSIGNED: string[] = [];
   const [showErrors, setShowErrors] = useState(false);
   const REQUIRED_FIELDS = ['kurs', 'startdatum', 'enddatum', 'anmeldefrist', 'status'] as const;
   const missingRequired = REQUIRED_FIELDS.filter(k => {
@@ -253,7 +277,7 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
       await onSubmit(clean as Kurstermine['fields']);
       onClose();
     } catch (err) {
-      setSubmitError(err instanceof Error && err.message ? err.message : 'Speichern fehlgeschlagen.');
+      setSubmitError(err instanceof Error && err.message ? err.message : t('submit_error'));
     } finally {
       setSaving(false);
     }
@@ -337,7 +361,7 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
       setScanSuccess(true);
       setTimeout(() => setScanSuccess(false), 3000);
     } catch (err) {
-      console.error('Scan fehlgeschlagen:', err);
+      console.error(`${t('scan_error')}:`, err);
       alert(err instanceof Error ? err.message : String(err));
     } finally {
       setScanning(false);
@@ -372,12 +396,14 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
     }
   }, []);
 
-  const DIALOG_INTENT = defaultValues ? 'Kurstermine bearbeiten' : 'Kurstermine hinzufügen';
+  const DIALOG_INTENT = defaultValues
+    ? t('edit_entity', { entity: appLabel('kurstermine') })
+    : t('new_entity', { entity: appLabel('kurstermine') });
 
   const fieldBlocks: Record<string, React.ReactNode> = {
     'raum': (
       <div key="raum" className="space-y-1.5">
-        <Label htmlFor="raum">Raum/Ort</Label>
+        <Label htmlFor="raum">{fieldLabel('kurstermine', 'raum')}</Label>
         <Combobox
           id="raum"
           placeholder=""
@@ -387,16 +413,14 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
           }))}
           value={extractRecordId(fields.raum)}
           onChange={id => setFields(f => ({ ...f, raum: id ? createRecordUrl(APP_IDS.RAEUME_UND_ORTE, id) : undefined }))}
-          searchPlaceholder="Suchen…"
-          emptyText="Kein Treffer"
           onCreateNew={(q) => openCreateRaeumeUndOrte("raum", q)}
-          createLabel="Neu in Räume und Orte"
+          createLabel={t('create_in', { entity: appLabel('raeume_und_orte') })}
         />
       </div>
     ),
     'kurs': (
       <div key="kurs" className="space-y-1.5">
-        <Label htmlFor="kurs">Kurs <span className="text-destructive" aria-hidden="true">*</span></Label>
+        <Label htmlFor="kurs">{fieldLabel('kurstermine', 'kurs')} <span className="text-destructive" aria-hidden="true">*</span></Label>
         <Combobox
           id="kurs"
           placeholder=""
@@ -406,19 +430,17 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
           }))}
           value={extractRecordId(fields.kurs)}
           onChange={id => setFields(f => ({ ...f, kurs: id ? createRecordUrl(APP_IDS.KURSE, id) : undefined }))}
-          searchPlaceholder="Suchen…"
-          emptyText="Kein Treffer"
           onCreateNew={(q) => openCreateKurse("kurs", q)}
-          createLabel="Neu in Kurse"
+          createLabel={t('create_in', { entity: appLabel('kurse') })}
         />
         {showErrors && !fields.kurs && (
-          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+          <p className="text-xs text-destructive mt-1" role="alert">{requiredMessage('kurstermine', 'kurs')}</p>
         )}
       </div>
     ),
     'startdatum': (
       <div key="startdatum" className="space-y-1.5">
-        <Label htmlFor="startdatum">Startdatum und -uhrzeit <span className="text-destructive" aria-hidden="true">*</span></Label>
+        <Label htmlFor="startdatum">{fieldLabel('kurstermine', 'startdatum')} <span className="text-destructive" aria-hidden="true">*</span></Label>
         <DatePicker
           id="startdatum"
           placeholder=""
@@ -428,13 +450,13 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
           required
         />
         {showErrors && !fields.startdatum && (
-          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+          <p className="text-xs text-destructive mt-1" role="alert">{requiredMessage('kurstermine', 'startdatum')}</p>
         )}
       </div>
     ),
     'enddatum': (
       <div key="enddatum" className="space-y-1.5">
-        <Label htmlFor="enddatum">Enddatum und -uhrzeit <span className="text-destructive" aria-hidden="true">*</span></Label>
+        <Label htmlFor="enddatum">{fieldLabel('kurstermine', 'enddatum')} <span className="text-destructive" aria-hidden="true">*</span></Label>
         <DatePicker
           id="enddatum"
           placeholder=""
@@ -444,13 +466,13 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
           required
         />
         {showErrors && !fields.enddatum && (
-          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+          <p className="text-xs text-destructive mt-1" role="alert">{requiredMessage('kurstermine', 'enddatum')}</p>
         )}
       </div>
     ),
     'ort': (
       <div key="ort" className="space-y-1.5">
-        <Label htmlFor="ort">Ort (Freitext)</Label>
+        <Label htmlFor="ort">{fieldLabel('kurstermine', 'ort')}</Label>
         <Input
           id="ort"
           placeholder=""
@@ -461,9 +483,12 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
     ),
     'online_link': (
       <div key="online_link" className="space-y-1.5">
-        <Label htmlFor="online_link">Online-Link</Label>
+        <Label htmlFor="online_link">{fieldLabel('kurstermine', 'online_link')}</Label>
         <Input
           id="online_link"
+          type="url"
+          inputMode="url"
+          placeholder=""
           value={fields.online_link ?? ''}
           onChange={e => setFields(f => ({ ...f, online_link: e.target.value }))}
         />
@@ -471,7 +496,7 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
     ),
     'anmeldefrist': (
       <div key="anmeldefrist" className="space-y-1.5">
-        <Label htmlFor="anmeldefrist">Anmeldefrist <span className="text-destructive" aria-hidden="true">*</span></Label>
+        <Label htmlFor="anmeldefrist">{fieldLabel('kurstermine', 'anmeldefrist')} <span className="text-destructive" aria-hidden="true">*</span></Label>
         <DatePicker
           id="anmeldefrist"
           placeholder=""
@@ -481,13 +506,13 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
           required
         />
         {showErrors && !fields.anmeldefrist && (
-          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+          <p className="text-xs text-destructive mt-1" role="alert">{requiredMessage('kurstermine', 'anmeldefrist')}</p>
         )}
       </div>
     ),
     'trainer': (
       <div key="trainer" className="space-y-1.5">
-        <Label htmlFor="trainer">Trainer</Label>
+        <Label htmlFor="trainer">{fieldLabel('kurstermine', 'trainer')}</Label>
         <Combobox
           id="trainer"
           placeholder=""
@@ -497,19 +522,18 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
           }))}
           value={extractRecordId(fields.trainer)}
           onChange={id => setFields(f => ({ ...f, trainer: id ? createRecordUrl(APP_IDS.TRAINER, id) : undefined }))}
-          searchPlaceholder="Suchen…"
-          emptyText="Kein Treffer"
           onCreateNew={(q) => openCreateTrainer("trainer", q)}
-          createLabel="Neu in Trainer"
+          createLabel={t('create_in', { entity: appLabel('trainer') })}
         />
       </div>
     ),
     'max_teilnehmer_abweichend': (
       <div key="max_teilnehmer_abweichend" className="space-y-1.5">
-        <Label htmlFor="max_teilnehmer_abweichend">Maximale Teilnehmerzahl (abweichend vom Kurs)</Label>
+        <Label htmlFor="max_teilnehmer_abweichend">{fieldLabel('kurstermine', 'max_teilnehmer_abweichend')}</Label>
         <Input
           id="max_teilnehmer_abweichend"
           type="number"
+          inputMode="decimal"
           step="any"
           {...numberInputProps(formEnhancements, 'max_teilnehmer_abweichend')}
           placeholder=""
@@ -520,7 +544,7 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
     ),
     'status': (
       <div key="status" className="space-y-1.5">
-        <Label htmlFor="status">Status <span className="text-destructive" aria-hidden="true">*</span></Label>
+        <Label htmlFor="status">{fieldLabel('kurstermine', 'status')} <span className="text-destructive" aria-hidden="true">*</span></Label>
         <div role="radiogroup" className="flex flex-wrap gap-1.5">
           <button
             type="button"
@@ -533,7 +557,7 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
                 : 'bg-background text-foreground border-input hover:bg-accent'
             }`}
           >
-            Geplant
+            {lookupLabel('kurstermine', 'status', 'geplant') ?? 'Geplant'}
           </button>
           <button
             type="button"
@@ -546,7 +570,7 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
                 : 'bg-background text-foreground border-input hover:bg-accent'
             }`}
           >
-            Offen zur Anmeldung
+            {lookupLabel('kurstermine', 'status', 'offen') ?? 'Offen zur Anmeldung'}
           </button>
           <button
             type="button"
@@ -559,7 +583,7 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
                 : 'bg-background text-foreground border-input hover:bg-accent'
             }`}
           >
-            Voll
+            {lookupLabel('kurstermine', 'status', 'voll') ?? 'Voll'}
           </button>
           <button
             type="button"
@@ -572,7 +596,7 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
                 : 'bg-background text-foreground border-input hover:bg-accent'
             }`}
           >
-            Durchgeführt
+            {lookupLabel('kurstermine', 'status', 'durchgefuehrt') ?? 'Durchgeführt'}
           </button>
           <button
             type="button"
@@ -585,11 +609,11 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
                 : 'bg-background text-foreground border-input hover:bg-accent'
             }`}
           >
-            Abgesagt
+            {lookupLabel('kurstermine', 'status', 'abgesagt') ?? 'Abgesagt'}
           </button>
         </div>
         {showErrors && !fields.status && (
-          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+          <p className="text-xs text-destructive mt-1" role="alert">{requiredMessage('kurstermine', 'status')}</p>
         )}
       </div>
     ),
@@ -662,9 +686,9 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
     // Backend-Feld mit €-Label ODER virtueller Computed-Key, dessen Name nach Geld aussieht.
     const looksLikeCurrency = CURRENCY_KEYS.has(k) || /(?:kosten|preis|betrag|gesamt|netto|brutto|summe|mwst|rabatt|anzahlung|umsatz|saldo)/i.test(k);
     if (looksLikeCurrency) {
-      return n.toLocaleString('de-DE', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return n.toLocaleString(localeTag(), { style: 'currency', currency: CURRENCY, minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
-    return n.toLocaleString('de-DE', { maximumFractionDigits: 2 });
+    return n.toLocaleString(localeTag(), { maximumFractionDigits: 2 });
   }
 
   return (
@@ -686,14 +710,14 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
               }`}
             >
               <IconSparkles className={`h-3.5 w-3.5 ${aiOpen ? '' : 'text-primary'}`} />
-              <span className="hidden sm:inline">KI-Ausfüllen</span>
+              <span className="hidden sm:inline">{t('smart_fill')}</span>
               <IconChevronDown className={`h-3 w-3 transition-transform ${aiOpen ? 'rotate-180' : ''}`} />
             </button>
           )}
         </DialogHeader>
         {enablePhotoScan && aiOpen && (
           <div id="ai-fill-panel" className="border-b bg-muted/20 px-6 py-4 space-y-3">
-            <p className="text-xs text-muted-foreground">Versteht Fotos, Dokumente und Text und füllt alles für dich aus</p>
+            <p className="text-xs text-muted-foreground">{t('scan_header_sub')}</p>
             <div className="flex items-start gap-2 pl-0.5">
               <Checkbox
                 id="ai-use-personal-info"
@@ -703,21 +727,21 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
               />
               <span className="text-xs text-muted-foreground leading-snug">
                 <Label htmlFor="ai-use-personal-info" className="text-xs font-normal text-muted-foreground cursor-pointer inline">
-                  KI-Assistent darf zusätzlich Informationen zu meiner Person verwenden
+                  {t('useinfo_label')}
                 </Label>
                 {' '}
                 <button type="button" onClick={handleShowProfileInfo} className="text-xs text-primary hover:underline whitespace-nowrap">
-                  {profileLoading ? 'Lade...' : '(mehr Infos)'}
+                  {profileLoading ? t('useinfo_loading') : `(${t('useinfo_more')})`}
                 </button>
               </span>
             </div>
             {showProfileInfo && (
               <div className="rounded-md border bg-muted/50 p-2 text-xs max-h-40 overflow-y-auto">
-                <p className="font-medium mb-1">Folgende Infos über dich können von der KI genutzt werden:</p>
+                <p className="font-medium mb-1">{t('profile_preamble')}</p>
                 {profileData ? Object.values(profileData).map((v, i) => (
                   <span key={i}>{i > 0 && ", "}{typeof v === "object" ? JSON.stringify(v) : String(v)}</span>
                 )) : (
-                  <span className="text-muted-foreground">Profil konnte nicht geladen werden</span>
+                  <span className="text-muted-foreground">{t('useinfo_error')}</span>
                 )}
               </div>
             )}
@@ -748,8 +772,8 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
                     <IconLoader2 className="h-7 w-7 text-primary animate-spin" />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-medium">KI analysiert...</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Felder werden automatisch ausgefüllt</p>
+                    <p className="text-sm font-medium">{t('scan_analyzing')}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{t('scan_analyzing_sub')}</p>
                   </div>
                 </div>
               ) : scanSuccess ? (
@@ -758,8 +782,8 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
                     <IconCircleCheck className="h-7 w-7 text-green-600 dark:text-green-400" />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-medium text-green-700 dark:text-green-400">Felder ausgefüllt!</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Prüfe die Werte und passe sie ggf. an</p>
+                    <p className="text-sm font-medium text-green-700 dark:text-green-400">{t('scan_success')}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{t('scan_success_sub')}</p>
                   </div>
                 </div>
               ) : (
@@ -768,7 +792,7 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
                     <IconPhotoPlus className="h-7 w-7 text-primary/70" />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-medium">Foto oder Dokument hierher ziehen oder auswählen</p>
+                    <p className="text-sm font-medium">{t('scan_upload')}</p>
                   </div>
                 </div>
               )}
@@ -792,11 +816,11 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
             <div className="grid grid-cols-3 gap-2">
               <Button type="button" variant="outline" size="sm" className="h-10 text-xs" disabled={scanning}
                 onClick={e => { e.stopPropagation(); cameraInputRef.current?.click(); }}>
-                <IconCamera className="h-3.5 w-3.5 mr-1" />Kamera
+                <IconCamera className="h-3.5 w-3.5 mr-1" />{t('scan_camera_btn')}
               </Button>
               <Button type="button" variant="outline" size="sm" className="h-10 text-xs" disabled={scanning}
                 onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}>
-                <IconUpload className="h-3.5 w-3.5 mr-1" />Foto wählen
+                <IconUpload className="h-3.5 w-3.5 mr-1" />{t('scan_file_btn')}
               </Button>
               <Button type="button" variant="outline" size="sm" className="h-10 text-xs" disabled={scanning}
                 onClick={e => {
@@ -807,13 +831,13 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
                     setTimeout(() => { if (fileInputRef.current) fileInputRef.current.accept = 'image/*,application/pdf'; }, 100);
                   }
                 }}>
-                <IconFileText className="h-3.5 w-3.5 mr-1" />Dokument
+                <IconFileText className="h-3.5 w-3.5 mr-1" />{t('scan_doc_btn')}
               </Button>
             </div>
 
             <div className="relative">
               <Textarea
-                placeholder="Text eingeben oder einfügen, z.B. Notizen, E-Mails, Beschreibungen..."
+                placeholder={t('scan_text_placeholder')}
                 value={aiText}
                 onChange={e => {
                   setAiText(e.target.value);
@@ -841,7 +865,7 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
                     if (text) setAiText(prev => prev ? prev + '\n' + text : text);
                   } catch {}
                 }}
-                title="Paste"
+                title={t('paste')}
               >
                 <IconClipboard className="h-4 w-4" />
               </button>
@@ -855,7 +879,7 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
                 disabled={scanning}
                 onClick={() => handleAiExtract()}
               >
-                <IconSparkles className="h-3.5 w-3.5 mr-1.5" />Analysieren
+                <IconSparkles className="h-3.5 w-3.5 mr-1.5" />{t('scan_text_analyze')}
               </Button>
             )}
           </div>
@@ -867,9 +891,25 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
               const renderField = (k: string) => {
                 const inlineHints = computedLayout.anchors[k] ?? [];
                 const refs = applookupRefs[k] ?? [];
+                // A field the plan gives to a TOOL. On CREATE it is not shown
+                // at all — the value does not exist yet and typing one only
+                // gets overwritten. On EDIT it stays a normal input with a
+                // note: when a tool could not compose its value (a missing
+                // ingredient), this is the only place to repair the record.
+                if (SYSTEM_ASSIGNED.includes(k) && !recordId) {
+                  return (
+                    <div key={k} className="space-y-1.5 min-w-0">
+                      <Label>{fieldLabel('kurstermine', k)}</Label>
+                      <p className="text-sm text-muted-foreground">{t('assigned_by_system')}</p>
+                    </div>
+                  );
+                }
                 return (
                   <div key={k} className="space-y-1.5 min-w-0">
                     {fieldBlocks[k]}
+                    {SYSTEM_ASSIGNED.includes(k) && (
+                      <p className="text-xs text-muted-foreground">{t('assigned_by_system')}</p>
+                    )}
                     {refs.map(({ lookupKey }) => {
                       // Show the live numeric value the formula will pull from
                       // the selected lookup target (e.g. "Monatspreis: 34,90 €"
@@ -950,7 +990,7 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
             {showErrors && missingRequired.length > 0 && (
               <p className="text-xs text-destructive flex items-center gap-1.5" role="alert">
                 <IconAlertCircle className="h-3.5 w-3.5 shrink-0" />
-                Bitte fülle die markierten Pflichtfelder aus.
+                {t('missing_required')}
               </p>
             )}
             {recordId && (
@@ -966,13 +1006,13 @@ export function KurstermineDialog({ open, onClose, onSubmit, defaultValues, reco
             </div>
           )}
           <DialogFooter className="sticky bottom-0 border-t bg-background/95 backdrop-blur px-6 py-3 gap-2 max-sm:flex-row">
-            <Button type="button" variant="outline" onClick={onClose} className="max-sm:h-12 max-sm:flex-1 max-sm:text-base">Abbrechen</Button>
+            <Button type="button" variant="outline" onClick={onClose} className="max-sm:h-12 max-sm:flex-1 max-sm:text-base">{t('cancel')}</Button>
             <Button
               type="submit"
               className="max-sm:h-12 max-sm:flex-1 max-sm:text-base"
               disabled={saving || !isDirty || (showErrors && missingRequired.length > 0)}
             >
-              {saving ? 'Speichern...' : defaultValues ? 'Speichern' : 'Erstellen'}
+              {saving ? t('saving') : defaultValues ? t('save') : t('create')}
             </Button>
           </DialogFooter>
         </form>

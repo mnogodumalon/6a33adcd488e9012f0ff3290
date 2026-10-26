@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { format, parseISO, isAfter } from 'date-fns';
-import { de } from 'date-fns/locale';
 import { IntentWizardShell } from '@/components/IntentWizardShell';
 import { EntitySelectStep } from '@/components/EntitySelectStep';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -29,6 +28,7 @@ import {
   IconChevronLeft,
   IconClock,
 } from '@tabler/icons-react';
+import { dateFnsLocale, tx } from '@/i18n';
 
 export default function TeilnehmerAnmeldenPage() {
   const { kurse, trainer, teilnehmer, kurstermine, anmeldungen, loading, error, fetchAll } = useDashboardData();
@@ -137,7 +137,7 @@ export default function TeilnehmerAnmeldenPage() {
   function formatDatetime(dt?: string): string {
     if (!dt) return '–';
     try {
-      return format(parseISO(dt), 'dd. MMM yyyy, HH:mm', { locale: de });
+      return format(parseISO(dt), 'dd. MMM yyyy, HH:mm', { locale: dateFnsLocale() });
     } catch {
       return dt;
     }
@@ -146,7 +146,7 @@ export default function TeilnehmerAnmeldenPage() {
   function formatDateOnly(dt?: string): string {
     if (!dt) return '–';
     try {
-      return format(parseISO(dt), 'dd. MMM yyyy', { locale: de });
+      return format(parseISO(dt), 'dd. MMM yyyy', { locale: dateFnsLocale() });
     } catch {
       return dt;
     }
@@ -187,12 +187,12 @@ export default function TeilnehmerAnmeldenPage() {
         bemerkung: bemerkung || undefined,
       });
       // Extract created record id
-      const newId = result?.record_id ?? (result ? Object.keys(result)[0] : null);
+      const newId = result?.record_id ?? null;
       setCreatedAnmeldungId(newId ?? null);
       await fetchAll();
       setStep(4);
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Fehler beim Speichern der Anmeldung.');
+      setSubmitError(err instanceof Error ? err.message : tx('Fehler beim Speichern der Anmeldung.'));
     } finally {
       setSubmitting(false);
     }
@@ -222,13 +222,13 @@ export default function TeilnehmerAnmeldenPage() {
 
   return (
     <IntentWizardShell
-      title="Teilnehmer anmelden"
-      subtitle="Melde einen Teilnehmer in 3 Schritten für einen Kurs an."
+      title={tx('Teilnehmer anmelden')}
+      subtitle={tx('Melde einen Teilnehmer in 3 Schritten für einen Kurs an.')}
       steps={[
-        { label: 'Teilnehmer' },
-        { label: 'Kurs & Termin' },
-        { label: 'Bestätigen' },
-        { label: 'Fertig' },
+        { label: tx('Teilnehmer') },
+        { label: tx('Kurs & Termin') },
+        { label: tx('Bestätigen') },
+        { label: tx('Fertig') },
       ]}
       currentStep={step}
       onStepChange={setStep}
@@ -240,29 +240,29 @@ export default function TeilnehmerAnmeldenPage() {
       {step === 1 && (
         <div className="space-y-4">
           <div>
-            <h2 className="text-lg font-semibold">Teilnehmer auswählen</h2>
+            <h2 className="text-lg font-semibold">{tx('Teilnehmer auswählen')}</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Wähle den Teilnehmer aus, der angemeldet werden soll.
+              {tx('Wähle den Teilnehmer aus, der angemeldet werden soll.')}
             </p>
           </div>
           <EntitySelectStep
             items={sortedTeilnehmer.map(t => ({
               id: t.record_id,
-              title: `${t.fields.vorname ?? ''} ${t.fields.nachname ?? ''}`.trim() || '(Kein Name)',
+              title: `${t.fields.vorname ?? ''} ${t.fields.nachname ?? ''}`.trim() || tx('(Kein Name)'),
               subtitle: t.fields.email ?? undefined,
               status: t.fields.aktiv_status
                 ? { key: t.fields.aktiv_status.key, label: t.fields.aktiv_status.label }
                 : undefined,
               stats: [
-                ...(t.fields.firma_abteilung ? [{ label: 'Firma/Abt.', value: t.fields.firma_abteilung }] : []),
-                ...(t.fields.rolle ? [{ label: 'Rolle', value: t.fields.rolle }] : []),
+                ...(t.fields.firma_abteilung ? [{ label: tx('Firma/Abt.'), value: t.fields.firma_abteilung }] : []),
+                ...(t.fields.rolle ? [{ label: tx('Rolle'), value: t.fields.rolle }] : []),
               ],
               icon: <IconUser size={20} className="text-primary" />,
             }))}
             onSelect={handleSelectTeilnehmer}
-            searchPlaceholder="Teilnehmer suchen..."
+            searchPlaceholder={tx('Teilnehmer suchen...')}
             emptyIcon={<IconUser size={32} />}
-            emptyText="Keine Teilnehmer gefunden."
+            emptyText={tx('Keine Teilnehmer gefunden.')}
           />
         </div>
       )}
@@ -277,7 +277,7 @@ export default function TeilnehmerAnmeldenPage() {
                 <IconUser size={18} className="text-primary" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs text-muted-foreground">Teilnehmer</p>
+                <p className="text-xs text-muted-foreground">{tx('Teilnehmer')}</p>
                 <p className="font-semibold text-sm truncate">
                   {`${selectedTeilnehmer.fields.vorname ?? ''} ${selectedTeilnehmer.fields.nachname ?? ''}`.trim()}
                 </p>
@@ -289,16 +289,16 @@ export default function TeilnehmerAnmeldenPage() {
                 onClick={() => { setStep(1); }}
                 className="ml-auto shrink-0 text-xs text-muted-foreground hover:text-foreground underline"
               >
-                Ändern
+                {tx('Ändern')}
               </button>
             </div>
           )}
 
           {/* Phase A: Kurs auswählen */}
           <div>
-            <h2 className="text-lg font-semibold">Kurs auswählen</h2>
+            <h2 className="text-lg font-semibold">{tx('Kurs auswählen')}</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Klicke auf einen Kurs, um die verfügbaren Termine zu sehen.
+              {tx('Klicke auf einen Kurs, um die verfügbaren Termine zu sehen.')}
             </p>
           </div>
 
@@ -322,7 +322,7 @@ export default function TeilnehmerAnmeldenPage() {
                       <IconBook size={18} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm truncate">{k.fields.kurstitel ?? '(Kein Titel)'}</p>
+                      <p className="font-semibold text-sm truncate">{k.fields.kurstitel ?? tx('(Kein Titel)')}</p>
                       {k.fields.kategorie && (
                         <p className="text-xs text-muted-foreground mt-0.5">{k.fields.kategorie.label}</p>
                       )}
@@ -330,7 +330,7 @@ export default function TeilnehmerAnmeldenPage() {
                         {k.fields.max_teilnehmer != null && (
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
                             <IconUsers size={12} />
-                            Max. {k.fields.max_teilnehmer}
+                            {tx('Max.')} {k.fields.max_teilnehmer}
                           </span>
                         )}
                         {k.fields.status && (
@@ -351,7 +351,7 @@ export default function TeilnehmerAnmeldenPage() {
               <div className="flex items-center gap-2">
                 <div className="h-px flex-1 bg-border" />
                 <p className="text-sm font-medium text-muted-foreground whitespace-nowrap">
-                  Termine für „{selectedKurs.fields.kurstitel}"
+                  {tx('Termine für „')}{selectedKurs.fields.kurstitel}"
                 </p>
                 <div className="h-px flex-1 bg-border" />
               </div>
@@ -359,7 +359,7 @@ export default function TeilnehmerAnmeldenPage() {
               {filteredTermine.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <IconCalendar size={32} className="mx-auto mb-2 opacity-40" />
-                  <p className="text-sm">Keine offenen Termine für diesen Kurs.</p>
+                  <p className="text-sm">{tx('Keine offenen Termine für diesen Kurs.')}</p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -396,13 +396,13 @@ export default function TeilnehmerAnmeldenPage() {
                             </div>
                             {termin.fields.enddatum && (
                               <p className="text-xs text-muted-foreground mt-0.5">
-                                bis {formatDatetime(termin.fields.enddatum)}
+                                {tx('bis')} {formatDatetime(termin.fields.enddatum)}
                               </p>
                             )}
                             <div className="flex items-center gap-3 mt-1 flex-wrap text-xs text-muted-foreground">
                               <span className="flex items-center gap-1">
                                 {isOnline ? <IconWifi size={12} /> : <IconMapPin size={12} />}
-                                {isOnline ? 'Online' : (termin.fields.ort ?? '–')}
+                                {isOnline ? tx('Online') : (termin.fields.ort ?? '–')}
                               </span>
                               {trainerName && (
                                 <span className="flex items-center gap-1">
@@ -414,12 +414,12 @@ export default function TeilnehmerAnmeldenPage() {
                                 freeSpots === 0 ? 'text-destructive' : freeSpots <= 3 ? 'text-amber-600' : 'text-green-600'
                               }`}>
                                 <IconUsers size={12} />
-                                {freeSpots === 0 ? 'Voll' : `Noch ${freeSpots} Platz${freeSpots === 1 ? '' : 'plätze'} frei`}
+                                {freeSpots === 0 ? tx('Voll') : freeSpots === 1 ? tx`Noch ${freeSpots} Platz frei` : tx`Noch ${freeSpots} Plätze frei`}
                               </span>
                               {termin.fields.anmeldefrist && (
                                 <span className="flex items-center gap-1">
                                   <IconClock size={12} />
-                                  Frist: {formatDateOnly(termin.fields.anmeldefrist)}
+                                  {tx('Frist:')} {formatDateOnly(termin.fields.anmeldefrist)}
                                 </span>
                               )}
                             </div>
@@ -441,14 +441,14 @@ export default function TeilnehmerAnmeldenPage() {
           <div className="flex items-center justify-between pt-2">
             <Button variant="ghost" onClick={() => setStep(1)} className="gap-1.5">
               <IconChevronLeft size={16} />
-              Zurück
+              {tx('Zurück')}
             </Button>
             <Button
               onClick={() => setStep(3)}
               disabled={!selectedKurs || !selectedTermin}
               className="gap-1.5"
             >
-              Weiter
+              {tx('Weiter')}
               <IconChevronRight size={16} />
             </Button>
           </div>
@@ -459,16 +459,16 @@ export default function TeilnehmerAnmeldenPage() {
       {step === 3 && (
         <div className="space-y-5">
           <div>
-            <h2 className="text-lg font-semibold">Anmeldung bestätigen</h2>
+            <h2 className="text-lg font-semibold">{tx('Anmeldung bestätigen')}</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Prüfe die Daten und schließe die Anmeldung ab.
+              {tx('Prüfe die Daten und schließe die Anmeldung ab.')}
             </p>
           </div>
 
           {/* Summary card */}
           <Card className="overflow-hidden">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Zusammenfassung</CardTitle>
+              <CardTitle className="text-base">{tx('Zusammenfassung')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Teilnehmer */}
@@ -477,7 +477,7 @@ export default function TeilnehmerAnmeldenPage() {
                   <IconUser size={16} className="text-primary" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs text-muted-foreground">Teilnehmer</p>
+                  <p className="text-xs text-muted-foreground">{tx('Teilnehmer')}</p>
                   <p className="font-semibold text-sm truncate">
                     {`${selectedTeilnehmer?.fields.vorname ?? ''} ${selectedTeilnehmer?.fields.nachname ?? ''}`.trim()}
                   </p>
@@ -495,7 +495,7 @@ export default function TeilnehmerAnmeldenPage() {
                   <IconBook size={16} className="text-primary" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs text-muted-foreground">Kurs</p>
+                  <p className="text-xs text-muted-foreground">{tx('Kurs')}</p>
                   <p className="font-semibold text-sm truncate">{selectedKurs?.fields.kurstitel ?? '–'}</p>
                   {selectedKurs?.fields.kategorie && (
                     <Badge variant="secondary" className="text-xs mt-0.5">
@@ -513,18 +513,18 @@ export default function TeilnehmerAnmeldenPage() {
                   <IconCalendar size={16} className="text-primary" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs text-muted-foreground">Termin</p>
+                  <p className="text-xs text-muted-foreground">{tx('Termin')}</p>
                   <p className="font-semibold text-sm">{formatDatetime(selectedTermin?.fields.startdatum)}</p>
                   {selectedTermin?.fields.enddatum && (
                     <p className="text-xs text-muted-foreground">
-                      bis {formatDatetime(selectedTermin.fields.enddatum)}
+                      {tx('bis')} {formatDatetime(selectedTermin.fields.enddatum)}
                     </p>
                   )}
                   <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
                     {selectedTermin && (
                       <span className="flex items-center gap-1">
                         {selectedTermin.fields.online_link
-                          ? <><IconWifi size={12} /> Online</>
+                          ? <><IconWifi size={12} /> {tx('Online')}</>
                           : <><IconMapPin size={12} /> {selectedTermin.fields.ort ?? '–'}</>
                         }
                       </span>
@@ -538,11 +538,11 @@ export default function TeilnehmerAnmeldenPage() {
           {/* Bemerkung */}
           <div className="space-y-1.5">
             <Label htmlFor="bemerkung" className="text-sm font-medium">
-              Bemerkung <span className="text-muted-foreground font-normal">(optional)</span>
+              {tx('Bemerkung')} <span className="text-muted-foreground font-normal">{tx('(optional)')}</span>
             </Label>
             <Textarea
               id="bemerkung"
-              placeholder="Zusätzliche Hinweise zur Anmeldung..."
+              placeholder={tx('Zusätzliche Hinweise zur Anmeldung...')}
               value={bemerkung}
               onChange={e => setBemerkung(e.target.value)}
               rows={3}
@@ -560,7 +560,7 @@ export default function TeilnehmerAnmeldenPage() {
           <div className="flex items-center justify-between pt-2">
             <Button variant="ghost" onClick={() => setStep(2)} className="gap-1.5" disabled={submitting}>
               <IconChevronLeft size={16} />
-              Zurück
+              {tx('Zurück')}
             </Button>
             <Button
               onClick={handleSubmit}
@@ -570,11 +570,11 @@ export default function TeilnehmerAnmeldenPage() {
               {submitting ? (
                 <>
                   <IconRefresh size={16} className="animate-spin" />
-                  Anmeldung wird gespeichert...
+                  {tx('Anmeldung wird gespeichert...')}
                 </>
               ) : (
                 <>
-                  Jetzt anmelden
+                  {tx('Jetzt anmelden')}
                   <IconArrowRight size={16} />
                 </>
               )}
@@ -592,9 +592,9 @@ export default function TeilnehmerAnmeldenPage() {
               <IconCircleCheck size={36} className="text-green-600" stroke={1.5} />
             </div>
             <div>
-              <h2 className="text-xl font-bold">Anmeldung erfolgreich!</h2>
+              <h2 className="text-xl font-bold">{tx('Anmeldung erfolgreich!')}</h2>
               <p className="text-sm text-muted-foreground mt-1">
-                Die Anmeldung wurde erfolgreich gespeichert.
+                {tx('Die Anmeldung wurde erfolgreich gespeichert.')}
               </p>
             </div>
           </div>
@@ -623,7 +623,7 @@ export default function TeilnehmerAnmeldenPage() {
                     : <IconMapPin size={16} className="text-muted-foreground shrink-0" />
                   }
                   <span className="truncate">
-                    {selectedTermin.fields.online_link ? 'Online' : (selectedTermin.fields.ort ?? '–')}
+                    {selectedTermin.fields.online_link ? tx('Online') : (selectedTermin.fields.ort ?? '–')}
                   </span>
                 </div>
               )}
@@ -634,7 +634,7 @@ export default function TeilnehmerAnmeldenPage() {
               <div className="flex items-center gap-2 text-sm">
                 <IconUsers size={16} className="text-muted-foreground shrink-0" />
                 <span className="text-muted-foreground">
-                  Anmeldungen für diesen Termin:
+                  {tx('Anmeldungen für diesen Termin:')}
                 </span>
                 <span className="font-semibold text-primary">
                   {terminAnmeldungenCount}
@@ -651,11 +651,11 @@ export default function TeilnehmerAnmeldenPage() {
               className="flex-1 gap-1.5"
             >
               <IconRefresh size={16} />
-              Weiteren Teilnehmer anmelden
+              {tx('Weiteren Teilnehmer anmelden')}
             </Button>
             <a href="#/" className="flex-1">
               <Button variant="default" className="w-full gap-1.5">
-                Zurück zum Dashboard
+                {tx('Zurück zum Dashboard')}
                 <IconArrowRight size={16} />
               </Button>
             </a>
@@ -663,7 +663,7 @@ export default function TeilnehmerAnmeldenPage() {
 
           {createdAnmeldungId && (
             <p className="text-xs text-center text-muted-foreground">
-              Anmeldungs-ID: {createdAnmeldungId}
+              {tx('Anmeldungs-ID:')} {createdAnmeldungId}
             </p>
           )}
         </div>

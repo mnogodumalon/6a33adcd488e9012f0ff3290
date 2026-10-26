@@ -24,14 +24,7 @@ import {
   IconRefresh,
 } from '@tabler/icons-react';
 import { format, parseISO, differenceInMinutes } from 'date-fns';
-import { de } from 'date-fns/locale';
-
-const WIZARD_STEPS = [
-  { label: 'Kurs' },
-  { label: 'Termin' },
-  { label: 'Trainer' },
-  { label: 'Fertig' },
-];
+import { dateFnsLocale, tx } from '@/i18n';
 
 interface TerminFormState {
   startdatum: string;
@@ -43,6 +36,13 @@ interface TerminFormState {
 }
 
 export default function KursterminPlanenPage() {
+  const WIZARD_STEPS = [
+  { label: tx('Kurs') },
+  { label: tx('Termin') },
+  { label: tx('Trainer') },
+  { label: tx('Fertig') },
+];
+
   const [searchParams] = useSearchParams();
 
   // Derive initial step from URL
@@ -91,7 +91,7 @@ export default function KursterminPlanenPage() {
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Fehler beim Laden der Daten'));
+      setError(err instanceof Error ? err : new Error(tx('Fehler beim Laden der Daten')));
     } finally {
       setLoading(false);
     }
@@ -126,14 +126,14 @@ export default function KursterminPlanenPage() {
   const handleTerminSubmit = async () => {
     if (!selectedKurs) return;
     if (!terminForm.startdatum || !terminForm.enddatum || !terminForm.anmeldefrist) {
-      setTerminError('Bitte fülle alle Pflichtfelder aus.');
+      setTerminError(tx('Bitte fülle alle Pflichtfelder aus.'));
       return;
     }
 
     const start = new Date(terminForm.startdatum);
     const end = new Date(terminForm.enddatum);
     if (end <= start) {
-      setTerminError('Das Enddatum muss nach dem Startdatum liegen.');
+      setTerminError(tx('Das Enddatum muss nach dem Startdatum liegen.'));
       return;
     }
 
@@ -172,6 +172,8 @@ export default function KursterminPlanenPage() {
       // Build a local Kurstermine record from what we submitted
       const newTermin: Kurstermine = {
         record_id: (response as { record_id?: string })?.record_id ?? '',
+        created_at: new Date().toISOString(),
+        updated_at: null,
         createdat: new Date().toISOString(),
         updatedat: null,
         fields: {
@@ -191,7 +193,7 @@ export default function KursterminPlanenPage() {
       setCreatedTermin(newTermin);
       setStep(3);
     } catch (err) {
-      setTerminError(err instanceof Error ? err.message : 'Fehler beim Speichern des Termins');
+      setTerminError(err instanceof Error ? err.message : tx('Fehler beim Speichern des Termins'));
     } finally {
       setTerminSaving(false);
     }
@@ -248,7 +250,7 @@ export default function KursterminPlanenPage() {
   const formatDisplayDate = (dateStr: string | undefined): string => {
     if (!dateStr) return '—';
     try {
-      return format(parseISO(dateStr), 'dd. MMM yyyy, HH:mm', { locale: de });
+      return format(parseISO(dateStr), 'dd. MMM yyyy, HH:mm', { locale: dateFnsLocale() });
     } catch {
       return dateStr;
     }
@@ -257,7 +259,7 @@ export default function KursterminPlanenPage() {
   const formatDisplayDateShort = (dateStr: string | undefined): string => {
     if (!dateStr) return '—';
     try {
-      return format(parseISO(dateStr), 'dd.MM.yyyy', { locale: de });
+      return format(parseISO(dateStr), 'dd.MM.yyyy', { locale: dateFnsLocale() });
     } catch {
       return dateStr;
     }
@@ -265,8 +267,8 @@ export default function KursterminPlanenPage() {
 
   return (
     <IntentWizardShell
-      title="Kurstermin planen"
-      subtitle="Lege einen neuen Termin für einen Kurs an und weise einen Trainer zu."
+      title={tx('Kurstermin planen')}
+      subtitle={tx('Lege einen neuen Termin für einen Kurs an und weise einen Trainer zu.')}
       steps={WIZARD_STEPS}
       currentStep={step}
       onStepChange={setStep}
@@ -278,15 +280,15 @@ export default function KursterminPlanenPage() {
       {step === 1 && (
         <div className="space-y-4">
           <div>
-            <h2 className="text-lg font-semibold">Kurs auswählen</h2>
+            <h2 className="text-lg font-semibold">{tx('Kurs auswählen')}</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Wähle den Kurs aus, für den du einen Termin anlegen möchtest.
+              {tx('Wähle den Kurs aus, für den du einen Termin anlegen möchtest.')}
             </p>
           </div>
           <EntitySelectStep
             items={kurse.map(k => ({
               id: k.record_id,
-              title: k.fields.kurstitel ?? '(Kein Titel)',
+              title: k.fields.kurstitel ?? tx('(Kein Titel)'),
               subtitle: [k.fields.kategorie?.label, k.fields.status?.label]
                 .filter(Boolean)
                 .join(' · '),
@@ -294,14 +296,14 @@ export default function KursterminPlanenPage() {
                 ? { key: k.fields.status.key, label: k.fields.status.label }
                 : undefined,
               stats: [
-                { label: 'Max. Teilnehmer', value: k.fields.max_teilnehmer ?? '—' },
+                { label: tx('Max. Teilnehmer'), value: k.fields.max_teilnehmer ?? '—' },
               ],
               icon: <IconBook size={20} className="text-primary" />,
             }))}
             onSelect={handleKursSelect}
-            searchPlaceholder="Kurs suchen..."
+            searchPlaceholder={tx('Kurs suchen...')}
             emptyIcon={<IconBook size={40} />}
-            emptyText="Keine Kurse gefunden."
+            emptyText={tx('Keine Kurse gefunden.')}
           />
         </div>
       )}
@@ -315,21 +317,21 @@ export default function KursterminPlanenPage() {
               <IconBook size={18} className="text-primary" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs text-muted-foreground">Ausgewählter Kurs</p>
+              <p className="text-xs text-muted-foreground">{tx('Ausgewählter Kurs')}</p>
               <p className="font-semibold text-sm truncate">{selectedKurs.fields.kurstitel}</p>
             </div>
             <button
               onClick={() => setStep(1)}
               className="ml-auto text-xs text-muted-foreground hover:text-foreground shrink-0 underline"
             >
-              Ändern
+              {tx('Ändern')}
             </button>
           </div>
 
           <div>
-            <h2 className="text-lg font-semibold">Termindaten eingeben</h2>
+            <h2 className="text-lg font-semibold">{tx('Termindaten eingeben')}</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Lege Datum, Uhrzeit und Ort für den Kurstermin fest.
+              {tx('Lege Datum, Uhrzeit und Ort für den Kurstermin fest.')}
             </p>
           </div>
 
@@ -337,7 +339,7 @@ export default function KursterminPlanenPage() {
             {/* Startdatum */}
             <div className="space-y-1.5">
               <Label htmlFor="startdatum">
-                Startdatum & Uhrzeit <span className="text-destructive">*</span>
+                {tx('Startdatum & Uhrzeit')} <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="startdatum"
@@ -350,7 +352,7 @@ export default function KursterminPlanenPage() {
             {/* Enddatum */}
             <div className="space-y-1.5">
               <Label htmlFor="enddatum">
-                Enddatum & Uhrzeit <span className="text-destructive">*</span>
+                {tx('Enddatum & Uhrzeit')} <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="enddatum"
@@ -363,7 +365,7 @@ export default function KursterminPlanenPage() {
             {/* Anmeldefrist */}
             <div className="space-y-1.5">
               <Label htmlFor="anmeldefrist">
-                Anmeldefrist <span className="text-destructive">*</span>
+                {tx('Anmeldefrist')} <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="anmeldefrist"
@@ -375,11 +377,11 @@ export default function KursterminPlanenPage() {
 
             {/* Ort */}
             <div className="space-y-1.5">
-              <Label htmlFor="ort">Veranstaltungsort</Label>
+              <Label htmlFor="ort">{tx('Veranstaltungsort')}</Label>
               <Input
                 id="ort"
                 type="text"
-                placeholder="z.B. Berlin, Raum 101"
+                placeholder={tx('z.B. Berlin, Raum 101')}
                 value={terminForm.ort}
                 onChange={e => setTerminForm(f => ({ ...f, ort: e.target.value }))}
               />
@@ -387,11 +389,11 @@ export default function KursterminPlanenPage() {
 
             {/* Online-Link */}
             <div className="space-y-1.5">
-              <Label htmlFor="online_link">Online-Link (optional)</Label>
+              <Label htmlFor="online_link">{tx('Online-Link (optional)')}</Label>
               <Input
                 id="online_link"
                 type="url"
-                placeholder="https://..."
+                placeholder={tx('https://...')}
                 value={terminForm.online_link}
                 onChange={e => setTerminForm(f => ({ ...f, online_link: e.target.value }))}
               />
@@ -400,15 +402,15 @@ export default function KursterminPlanenPage() {
             {/* Abweichende Teilnehmeranzahl */}
             <div className="space-y-1.5">
               <Label htmlFor="max_teilnehmer_abweichend">
-                Abweichende Teilnehmeranzahl (optional)
+                {tx('Abweichende Teilnehmeranzahl (optional)')}
               </Label>
               <Input
                 id="max_teilnehmer_abweichend"
                 type="number"
                 min={1}
                 placeholder={selectedKurs.fields.max_teilnehmer
-                  ? `Standard: ${selectedKurs.fields.max_teilnehmer}`
-                  : 'Anzahl eingeben'}
+                  ? tx`Standard: ${selectedKurs.fields.max_teilnehmer}`
+                  : tx('Anzahl eingeben')}
                 value={terminForm.max_teilnehmer_abweichend}
                 onChange={e => setTerminForm(f => ({ ...f, max_teilnehmer_abweichend: e.target.value }))}
               />
@@ -421,7 +423,7 @@ export default function KursterminPlanenPage() {
               <CardContent className="p-3">
                 <div className="flex items-center gap-2 text-sm text-primary">
                   <IconClock size={16} className="shrink-0" />
-                  <span>Dauer: <strong>{durationHours} Stunden</strong></span>
+                  <span>{tx('Dauer:')} <strong>{durationHours} {tx('Stunden')}</strong></span>
                 </div>
               </CardContent>
             </Card>
@@ -438,7 +440,7 @@ export default function KursterminPlanenPage() {
           {/* Actions */}
           <div className="flex gap-3 pt-1">
             <Button variant="outline" onClick={() => setStep(1)}>
-              Zurück
+              {tx('Zurück')}
             </Button>
             <Button
               onClick={handleTerminSubmit}
@@ -448,11 +450,11 @@ export default function KursterminPlanenPage() {
               {terminSaving ? (
                 <>
                   <IconRefresh size={16} className="animate-spin" />
-                  Wird gespeichert...
+                  {tx('Wird gespeichert...')}
                 </>
               ) : (
                 <>
-                  Termin anlegen
+                  {tx('Termin anlegen')}
                   <IconArrowRight size={16} />
                 </>
               )}
@@ -471,7 +473,7 @@ export default function KursterminPlanenPage() {
                 <IconCalendarPlus size={18} className="text-primary" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs text-muted-foreground">Termin für</p>
+                <p className="text-xs text-muted-foreground">{tx('Termin für')}</p>
                 <p className="font-semibold text-sm truncate">{selectedKurs.fields.kurstitel}</p>
                 {createdTermin?.fields.startdatum && (
                   <p className="text-xs text-muted-foreground">
@@ -483,16 +485,16 @@ export default function KursterminPlanenPage() {
           )}
 
           <div>
-            <h2 className="text-lg font-semibold">Trainer zuweisen</h2>
+            <h2 className="text-lg font-semibold">{tx('Trainer zuweisen')}</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Wähle einen Trainer für diesen Termin aus. Du kannst diesen Schritt auch überspringen.
+              {tx('Wähle einen Trainer für diesen Termin aus. Du kannst diesen Schritt auch überspringen.')}
             </p>
           </div>
 
           {trainer.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <IconUser size={40} className="mx-auto mb-3 opacity-30" />
-              <p className="text-sm">Keine Trainer gefunden.</p>
+              <p className="text-sm">{tx('Keine Trainer gefunden.')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -509,7 +511,7 @@ export default function KursterminPlanenPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-sm group-hover:text-primary transition-colors truncate">
-                        {[t.fields.vorname, t.fields.nachname].filter(Boolean).join(' ') || '(Kein Name)'}
+                        {[t.fields.vorname, t.fields.nachname].filter(Boolean).join(' ') || tx('(Kein Name)')}
                       </p>
                       {t.fields.trainer_typ && (
                         <Badge variant="secondary" className="mt-1 text-xs">
@@ -530,7 +532,7 @@ export default function KursterminPlanenPage() {
 
           <div className="flex gap-3 pt-1">
             <Button variant="outline" onClick={handleSkipTrainer} disabled={trainerSaving}>
-              Überspringen
+              {tx('Überspringen')}
             </Button>
           </div>
         </div>
@@ -545,15 +547,15 @@ export default function KursterminPlanenPage() {
               <IconCheck size={20} className="text-green-700" stroke={2.5} />
             </div>
             <div>
-              <h2 className="text-lg font-semibold">Kurstermin erfolgreich angelegt!</h2>
-              <p className="text-sm text-muted-foreground">Hier ist eine Übersicht des neuen Termins.</p>
+              <h2 className="text-lg font-semibold">{tx('Kurstermin erfolgreich angelegt!')}</h2>
+              <p className="text-sm text-muted-foreground">{tx('Hier ist eine Übersicht des neuen Termins.')}</p>
             </div>
           </div>
 
           {/* Summary card */}
           <Card className="overflow-hidden">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Termindaten</CardTitle>
+              <CardTitle className="text-base">{tx('Termindaten')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {/* Kurs */}
@@ -562,7 +564,7 @@ export default function KursterminPlanenPage() {
                   <IconBook size={15} className="text-primary" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs text-muted-foreground">Kurs</p>
+                  <p className="text-xs text-muted-foreground">{tx('Kurs')}</p>
                   <p className="text-sm font-medium truncate">
                     {selectedKurs?.fields.kurstitel ?? '—'}
                   </p>
@@ -580,15 +582,15 @@ export default function KursterminPlanenPage() {
                   <IconCalendarPlus size={15} className="text-primary" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs text-muted-foreground">Datum</p>
+                  <p className="text-xs text-muted-foreground">{tx('Datum')}</p>
                   <p className="text-sm font-medium">
                     {formatDisplayDate(createdTermin.fields.startdatum)}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    bis {formatDisplayDate(createdTermin.fields.enddatum)}
+                    {tx('bis')} {formatDisplayDate(createdTermin.fields.enddatum)}
                   </p>
                   {durationHours && (
-                    <p className="text-xs text-muted-foreground">Dauer: {durationHours} Stunden</p>
+                    <p className="text-xs text-muted-foreground">{tx('Dauer:')} {durationHours} {tx('Stunden')}</p>
                   )}
                 </div>
               </div>
@@ -601,7 +603,7 @@ export default function KursterminPlanenPage() {
                   <IconClock size={15} className="text-amber-700" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs text-muted-foreground">Anmeldefrist</p>
+                  <p className="text-xs text-muted-foreground">{tx('Anmeldefrist')}</p>
                   <p className="text-sm font-medium">
                     {formatDisplayDateShort(createdTermin.fields.anmeldefrist)}
                   </p>
@@ -622,7 +624,7 @@ export default function KursterminPlanenPage() {
                     <div className="min-w-0">
                       {createdTermin.fields.ort && (
                         <>
-                          <p className="text-xs text-muted-foreground">Veranstaltungsort</p>
+                          <p className="text-xs text-muted-foreground">{tx('Veranstaltungsort')}</p>
                           <p className="text-sm font-medium truncate">{createdTermin.fields.ort}</p>
                         </>
                       )}
@@ -644,7 +646,7 @@ export default function KursterminPlanenPage() {
                   <IconUser size={15} className="text-primary" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs text-muted-foreground">Trainer</p>
+                  <p className="text-xs text-muted-foreground">{tx('Trainer')}</p>
                   {selectedTrainer ? (
                     <p className="text-sm font-medium truncate">
                       {[selectedTrainer.fields.vorname, selectedTrainer.fields.nachname]
@@ -652,7 +654,7 @@ export default function KursterminPlanenPage() {
                         .join(' ')}
                     </p>
                   ) : (
-                    <p className="text-sm text-muted-foreground">Noch nicht zugewiesen</p>
+                    <p className="text-sm text-muted-foreground">{tx('Noch nicht zugewiesen')}</p>
                   )}
                 </div>
               </div>
@@ -662,7 +664,7 @@ export default function KursterminPlanenPage() {
               {/* Teilnehmer + Status */}
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
-                  <p className="text-xs text-muted-foreground">Max. Teilnehmer</p>
+                  <p className="text-xs text-muted-foreground">{tx('Max. Teilnehmer')}</p>
                   <p className="text-sm font-medium">
                     {createdTermin.fields.max_teilnehmer_abweichend
                       ?? selectedKurs?.fields.max_teilnehmer
@@ -670,7 +672,7 @@ export default function KursterminPlanenPage() {
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-muted-foreground mb-1">Status</p>
+                  <p className="text-xs text-muted-foreground mb-1">{tx('Status')}</p>
                   <StatusBadge
                     statusKey={createdTermin.fields.status?.key}
                     label={createdTermin.fields.status?.label}
@@ -684,11 +686,11 @@ export default function KursterminPlanenPage() {
           <div className="flex flex-col sm:flex-row gap-3">
             <Button onClick={handleReset} variant="outline" className="gap-2">
               <IconCalendarPlus size={16} />
-              Weiteren Termin planen
+              {tx('Weiteren Termin planen')}
             </Button>
             <a href="#/" className="flex-1 sm:flex-none">
               <Button variant="ghost" className="w-full">
-                Zurück zum Dashboard
+                {tx('Zurück zum Dashboard')}
               </Button>
             </a>
           </div>

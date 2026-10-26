@@ -6,7 +6,6 @@ import { LivingAppsService, extractRecordId, createRecordUrl } from '@/services/
 import { formatDate, formatDateTime, lookupKey } from '@/lib/formatters';
 import { useState, useMemo, useCallback } from 'react';
 import { format, parseISO, isAfter, isBefore, startOfDay, addDays } from 'date-fns';
-import { de } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,6 +26,7 @@ import { KurstermineDialog } from '@/components/dialogs/KurstermineDialog';
 import { AnmeldungenDialog } from '@/components/dialogs/AnmeldungenDialog';
 import { AI_PHOTO_SCAN, AI_PHOTO_LOCATION } from '@/config/ai-features';
 import { useClock, gruss, namen, undoToast } from '@/lib/polish';
+import { dateFnsLocale, tx } from '@/i18n';
 
 const APPGROUP_ID = '6a33adcd488e9012f0ff3290';
 const REPAIR_ENDPOINT = '/claude/build/repair';
@@ -119,8 +119,8 @@ export default function DashboardOverview() {
         id: `termin:${t.record_id}`,
         start: t.fields.startdatum!.slice(0, 16),
         end: t.fields.enddatum ? t.fields.enddatum.slice(0, 16) : undefined,
-        title: t.kursName || t.fields.ort || 'Kurstermin',
-        subtitle: t.trainerName ? `Trainer: ${t.trainerName}` : (t.fields.ort ?? undefined),
+        title: t.kursName || t.fields.ort || tx('Kurstermin'),
+        subtitle: t.trainerName ? tx`Trainer: ${t.trainerName}` : (t.fields.ort ?? undefined),
         tone: toneForTermin(lookupKey(t.fields.status)),
       }));
   }, [enrichedKurstermine, offeneTermine, volleTermine, kpiFilter]);
@@ -129,9 +129,9 @@ export default function DashboardOverview() {
   const confirmAnmeldung = useCallback(async (a: EnrichedAnmeldungen) => {
     const prev = anmeldungen.map(x => ({ ...x }));
     setAnmeldungen(anmeldungen.map(x =>
-      x.record_id === a.record_id ? { ...x, fields: { ...x.fields, status: { key: 'angemeldet', label: 'Angemeldet' } } } : x
+      x.record_id === a.record_id ? { ...x, fields: { ...x.fields, status: { key: 'angemeldet', label: tx('Angemeldet') } } } : x
     ));
-    undoToast(`${a.teilnehmerName || 'Anmeldung'} bestätigt`, () => {
+    undoToast(tx`${a.teilnehmerName || tx('Anmeldung')} bestätigt`, () => {
       setAnmeldungen(prev);
       LivingAppsService.updateAnmeldungenEntry(a.record_id, { status: 'vorgemerkt' }).catch(() => fetchAll());
     });
@@ -149,7 +149,7 @@ export default function DashboardOverview() {
     setKurstermine(kurstermine.map(k =>
       k.record_id === rid ? { ...k, fields: { ...k.fields, startdatum: newStart, ...(newEnd ? { enddatum: newEnd } : {}) } } : k
     ));
-    undoToast('Termin verschoben', () => {
+    undoToast(tx('Termin verschoben'), () => {
       setKurstermine(prev);
       const old = prev.find(k => k.record_id === rid);
       if (old) LivingAppsService.updateKurstermineEntry(rid, { startdatum: old.fields.startdatum, enddatum: old.fields.enddatum }).catch(() => fetchAll());
@@ -167,7 +167,7 @@ export default function DashboardOverview() {
     setKurstermine(kurstermine.map(k =>
       k.record_id === rid ? { ...k, fields: { ...k.fields, startdatum: newStart, enddatum: newEnd } } : k
     ));
-    undoToast('Termin-Dauer geändert', () => {
+    undoToast(tx('Termin-Dauer geändert'), () => {
       setKurstermine(prev);
       const old = prev.find(k => k.record_id === rid);
       if (old) LivingAppsService.updateKurstermineEntry(rid, { startdatum: old.fields.startdatum, enddatum: old.fields.enddatum }).catch(() => fetchAll());
@@ -200,13 +200,13 @@ export default function DashboardOverview() {
   const contextLine = useMemo(() => {
     const offeneCount = offeneTermine.length;
     const naechster = naechsterTermin;
-    if (offeneCount === 0 && !naechster) return 'Keine anstehenden Kurstermine.';
+    if (offeneCount === 0 && !naechster) return tx('Keine anstehenden Kurstermine.');
     if (naechster) {
       const datStr = formatDate(naechster.fields.startdatum);
-      const kursTitle = naechster.kursName || 'Kurs';
-      return `Nächster Termin: ${kursTitle} am ${datStr}${offeneCount > 0 ? ` — ${offeneCount} ${offeneCount === 1 ? 'Termin' : 'Termine'} offen zur Anmeldung` : ''}.`;
+      const kursTitle = naechster.kursName || tx('Kurs');
+      return tx`Nächster Termin: ${kursTitle} am ${datStr}${offeneCount > 0 ? tx` — ${offeneCount} ${offeneCount === 1 ? tx('Termin') : tx('Termine')} offen zur Anmeldung` : ''}.`;
     }
-    return `${offeneCount} ${offeneCount === 1 ? 'Termin' : 'Termine'} offen zur Anmeldung.`;
+    return tx`${offeneCount} ${offeneCount === 1 ? tx('Termin') : tx('Termine')} offen zur Anmeldung.`;
   }, [offeneTermine, naechsterTermin]);
 
   // Overlay record
@@ -233,7 +233,7 @@ export default function DashboardOverview() {
           onClick={() => { setEditingTermin(null); setNewTerminDefaults({}); setTerminDialogOpen(true); }}
         >
           <IconPlus size={16} className="mr-1.5 shrink-0" />
-          Neuer Termin
+          {tx('Neuer Termin')}
         </Button>
       </div>
 
@@ -243,41 +243,41 @@ export default function DashboardOverview() {
             icon={<IconAlertTriangle size={18} />}
             tone="warning"
             action={{
-              label: 'Termin öffnen',
+              label: tx('Termin öffnen'),
               onClick: () => {
                 const t = abgesagteTermine[0];
                 overlay.replace({ type: 'termin', id: t.record_id });
               },
             }}
           >
-            <b>{namen(abgesagteTermine.map(t => t.kursName || 'Termin'))}</b>{' '}
-            {abgesagteTermine.length === 1 ? 'wurde abgesagt' : 'wurden abgesagt'} — bitte prüfe die betroffenen Anmeldungen.
+            <b>{namen(abgesagteTermine.map(t => t.kursName || tx('Termin')))}</b>{' '}
+            {abgesagteTermine.length === 1 ? tx('wurde abgesagt') : tx('wurden abgesagt')} {tx('— bitte prüfe die betroffenen Anmeldungen.')}
           </HeroBanner>
         ) : undefined}
         kpis={
           <StatCardRow>
             <StatCard
-              title="Offen zur Anmeldung"
+              title={tx('Offen zur Anmeldung')}
               value={offeneTermine.length}
-              description={offeneTermine.length > 0 ? 'Kurstermine verfügbar' : 'Keine offenen Termine'}
+              description={offeneTermine.length > 0 ? tx('Kurstermine verfügbar') : tx('Keine offenen Termine')}
               icon={<IconCalendarEvent size={18} className="text-muted-foreground" />}
               tone={offeneTermine.length > 0 ? 'primary' : 'default'}
               onClick={() => setKpiFilter(f => f === 'offen' ? null : 'offen')}
               active={kpiFilter === 'offen'}
             />
             <StatCard
-              title="Ausgebucht"
+              title={tx('Ausgebucht')}
               value={volleTermine.length}
-              description={volleTermine.length > 0 ? 'Keine freien Plätze' : 'Alle Termine haben Plätze'}
+              description={volleTermine.length > 0 ? tx('Keine freien Plätze') : tx('Alle Termine haben Plätze')}
               icon={<IconUsers size={18} className="text-muted-foreground" />}
               tone={volleTermine.length > 0 ? 'warning' : 'default'}
               onClick={() => setKpiFilter(f => f === 'voll' ? null : 'voll')}
               active={kpiFilter === 'voll'}
             />
             <StatCard
-              title="Unbestätigte Anmeldungen"
+              title={tx('Unbestätigte Anmeldungen')}
               value={vorgemerkteAnmeldungen.length}
-              description={vorgemerkteAnmeldungen.length > 0 ? 'Warten auf Bestätigung' : 'Alles bestätigt'}
+              description={vorgemerkteAnmeldungen.length > 0 ? tx('Warten auf Bestätigung') : tx('Alles bestätigt')}
               icon={<IconClipboardList size={18} className="text-muted-foreground" />}
               tone={vorgemerkteAnmeldungen.length > 0 ? 'warning' : 'default'}
             />
@@ -286,34 +286,34 @@ export default function DashboardOverview() {
         aside={
           <>
             <WorkList
-              title="Unbestätigte Anmeldungen"
+              title={tx('Unbestätigte Anmeldungen')}
               icon={<IconClipboardList size={14} />}
               items={pendingAnmeldungen.map(a => ({
                 id: a.record_id,
-                title: a.teilnehmerName || 'Unbekannter Teilnehmer',
+                title: a.teilnehmerName || tx('Unbekannter Teilnehmer'),
                 secondLine: (
                   <>
-                    <span className="font-medium text-amber-600">Vorgemerkt</span>
+                    <span className="font-medium text-amber-600">{tx('Vorgemerkt')}</span>
                     {a.kursName ? <span className="text-muted-foreground"> · {a.kursName}</span> : null}
                     {a.fields.anmeldedatum ? <span className="text-muted-foreground"> · {formatDate(a.fields.anmeldedatum)}</span> : null}
                   </>
                 ),
                 action: {
-                  label: '✓ Bestätigen',
+                  label: tx('✓ Bestätigen'),
                   onClick: () => confirmAnmeldung(a),
                 },
               }))}
               onItemClick={id => overlay.replace({ type: 'anmeldung', id })}
               empty={{
-                text: 'Alle Anmeldungen sind bestätigt.',
+                text: tx('Alle Anmeldungen sind bestätigt.'),
                 action: {
-                  label: 'Neue Anmeldung',
+                  label: tx('Neue Anmeldung'),
                   onClick: () => { setEditingAnmeldung(null); setAnmeldungDialogOpen(true); },
                 },
               }}
             />
             <WorkList
-              title="Nächste Kurstermine"
+              title={tx('Nächste Kurstermine')}
               icon={<IconCalendarEvent size={14} />}
               items={enrichedKurstermine
                 .filter(t => t.fields.startdatum && !isBefore(parseISO(t.fields.startdatum), todayDate))
@@ -321,7 +321,7 @@ export default function DashboardOverview() {
                 .slice(0, 5)
                 .map(t => ({
                   id: t.record_id,
-                  title: t.kursName || t.fields.ort || 'Kurstermin',
+                  title: t.kursName || t.fields.ort || tx('Kurstermin'),
                   secondLine: (
                     <>
                       <span className="text-muted-foreground">{formatDate(t.fields.startdatum)}</span>
@@ -337,7 +337,7 @@ export default function DashboardOverview() {
                     </>
                   ),
                   action: {
-                    label: '+ Anmeldung',
+                    label: tx('+ Anmeldung'),
                     onClick: () => {
                       setEditingAnmeldung(null);
                       setAnmeldungDialogOpen(true);
@@ -346,8 +346,8 @@ export default function DashboardOverview() {
                 }))}
               onItemClick={id => overlay.replace({ type: 'termin', id })}
               empty={{
-                text: 'Keine anstehenden Kurstermine.',
-                action: { label: 'Termin anlegen', onClick: () => { setEditingTermin(null); setNewTerminDefaults({}); setTerminDialogOpen(true); } },
+                text: tx('Keine anstehenden Kurstermine.'),
+                action: { label: tx('Termin anlegen'), onClick: () => { setEditingTermin(null); setNewTerminDefaults({}); setTerminDialogOpen(true); } },
               }}
             />
           </>
@@ -356,7 +356,7 @@ export default function DashboardOverview() {
           <CalendarWidget
             events={calendarEvents}
             defaultView="month"
-            locale={de}
+            locale={dateFnsLocale()}
             weekDays={5}
             onEventClick={ev => {
               const rid = ev.id.split(':')[1] ?? '';
@@ -388,7 +388,7 @@ export default function DashboardOverview() {
               }}
             >
               <IconPlus size={14} className="mr-1" />
-              Anmeldung hinzufügen
+              {tx('Anmeldung hinzufügen')}
             </Button>
           </div>
         ) : undefined}
@@ -396,25 +396,25 @@ export default function DashboardOverview() {
         {overlayTermin && (
           <>
             <RecordHeader
-              title={overlayTermin.kursName || 'Kurstermin'}
-              subtitle={overlayTermin.trainerName ? `Trainer: ${overlayTermin.trainerName}` : undefined}
+              title={overlayTermin.kursName || tx('Kurstermin')}
+              subtitle={overlayTermin.trainerName ? tx`Trainer: ${overlayTermin.trainerName}` : undefined}
             />
             <RecordKeyFacts
               items={[
-                { label: 'Start', value: formatDateTime(overlayTermin.fields.startdatum) },
-                { label: 'Ende', value: formatDateTime(overlayTermin.fields.enddatum) },
-                { label: 'Ort', value: overlayTermin.fields.ort || '—' },
-                { label: 'Status', value: overlayTermin.fields.status?.label || '—' },
+                { label: tx('Start'), value: formatDateTime(overlayTermin.fields.startdatum) },
+                { label: tx('Ende'), value: formatDateTime(overlayTermin.fields.enddatum) },
+                { label: tx('Ort'), value: overlayTermin.fields.ort || '—' },
+                { label: tx('Status'), value: overlayTermin.fields.status?.label || '—' },
               ]}
             />
-            <RecordSection title="Details">
-              <RecordField label="Anmeldefrist" value={overlayTermin.fields.anmeldefrist} format="date" />
-              <RecordField label="Max. Teilnehmer (abw.)" value={overlayTermin.fields.max_teilnehmer_abweichend?.toString()} />
+            <RecordSection title={tx('Details')}>
+              <RecordField label={tx('Anmeldefrist')} value={overlayTermin.fields.anmeldefrist} format="date" />
+              <RecordField label={tx('Max. Teilnehmer (abw.)')} value={overlayTermin.fields.max_teilnehmer_abweichend?.toString()} />
               {overlayTermin.fields.online_link && (
-                <RecordField label="Online-Link" value={overlayTermin.fields.online_link} format="url" />
+                <RecordField label={tx('Online-Link')} value={overlayTermin.fields.online_link} format="url" />
               )}
             </RecordSection>
-            <RecordSection title="Anmeldungen für diesen Termin">
+            <RecordSection title={tx('Anmeldungen für diesen Termin')}>
               {enrichedAnmeldungen
                 .filter(a => {
                   const terminId = extractRecordId(a.fields.kurstermin);
@@ -436,7 +436,7 @@ export default function DashboardOverview() {
                   </div>
                 ))}
               {enrichedAnmeldungen.filter(a => extractRecordId(a.fields.kurstermin) === overlayTermin.record_id).length === 0 && (
-                <p className="text-sm text-muted-foreground py-2">Keine Anmeldungen vorhanden.</p>
+                <p className="text-sm text-muted-foreground py-2">{tx('Keine Anmeldungen vorhanden.')}</p>
               )}
             </RecordSection>
             <RecordAttachments appId={APP_IDS.KURSTERMINE} recordId={overlayTermin.record_id} />
@@ -452,27 +452,27 @@ export default function DashboardOverview() {
         onEdit={overlayAnmeldung ? () => { setEditingAnmeldung(overlayAnmeldung); setAnmeldungDialogOpen(true); overlay.close(); } : undefined}
         footer={overlayAnmeldung && lookupKey(overlayAnmeldung.fields.status) === 'vorgemerkt' ? (
           <Button size="sm" onClick={() => { confirmAnmeldung(overlayAnmeldung); overlay.close(); }}>
-            ✓ Anmeldung bestätigen
+            {tx('✓ Anmeldung bestätigen')}
           </Button>
         ) : undefined}
       >
         {overlayAnmeldung && (
           <>
             <RecordHeader
-              title={overlayAnmeldung.teilnehmerName || 'Anmeldung'}
+              title={overlayAnmeldung.teilnehmerName || tx('Anmeldung')}
               subtitle={overlayAnmeldung.kursName || undefined}
             />
             <RecordKeyFacts
               items={[
-                { label: 'Status', value: overlayAnmeldung.fields.status?.label || '—' },
-                { label: 'Anmeldedatum', value: formatDateTime(overlayAnmeldung.fields.anmeldedatum) },
-                { label: 'Kurs', value: overlayAnmeldung.kursName || '—' },
-                { label: 'Termin', value: overlayAnmeldung.kursterminName || '—' },
+                { label: tx('Status'), value: overlayAnmeldung.fields.status?.label || '—' },
+                { label: tx('Anmeldedatum'), value: formatDateTime(overlayAnmeldung.fields.anmeldedatum) },
+                { label: tx('Kurs'), value: overlayAnmeldung.kursName || '—' },
+                { label: tx('Termin'), value: overlayAnmeldung.kursterminName || '—' },
               ]}
             />
-            <RecordSection title="Details">
+            <RecordSection title={tx('Details')}>
               {overlayAnmeldung.fields.bemerkung && (
-                <RecordField label="Bemerkung" value={overlayAnmeldung.fields.bemerkung} format="longtext" />
+                <RecordField label={tx('Bemerkung')} value={overlayAnmeldung.fields.bemerkung} format="longtext" />
               )}
             </RecordSection>
             <RecordAttachments appId={APP_IDS.ANMELDUNGEN} recordId={overlayAnmeldung.record_id} />
@@ -548,7 +548,7 @@ function DashboardError({ error, onRetry }: { error: Error; onRetry: () => void 
 
   const handleRepair = async () => {
     setRepairing(true);
-    setRepairStatus('Reparatur wird gestartet...');
+    setRepairStatus(tx('Reparatur wird gestartet...'));
     setRepairFailed(false);
 
     const errorContext = JSON.stringify({
@@ -593,7 +593,7 @@ function DashboardError({ error, onRetry }: { error: Error; onRetry: () => void 
             setRepairDone(true);
             setRepairing(false);
           }
-          if (content.startsWith('[ERROR]') && !content.includes('Dashboard-Links')) {
+          if (content.startsWith('[ERROR]') && !content.includes('Dashboard-Links')) { /* i18n-exempt */
             setRepairFailed(true);
           }
         }
@@ -611,11 +611,11 @@ function DashboardError({ error, onRetry }: { error: Error; onRetry: () => void 
           <IconCheck size={22} className="text-green-500" />
         </div>
         <div className="text-center">
-          <h3 className="font-semibold text-foreground mb-1">Dashboard repariert</h3>
-          <p className="text-sm text-muted-foreground max-w-xs">Das Problem wurde behoben. Bitte laden Sie die Seite neu.</p>
+          <h3 className="font-semibold text-foreground mb-1">{tx('Dashboard repariert')}</h3>
+          <p className="text-sm text-muted-foreground max-w-xs">{tx('Das Problem wurde behoben. Bitte laden Sie die Seite neu.')}</p>
         </div>
         <Button size="sm" onClick={() => window.location.reload()}>
-          <IconRefresh size={14} className="mr-1" />Neu laden
+          <IconRefresh size={14} className="mr-1" />{tx('Neu laden')}
         </Button>
       </div>
     );
@@ -627,21 +627,21 @@ function DashboardError({ error, onRetry }: { error: Error; onRetry: () => void 
         <IconAlertCircle size={22} className="text-destructive" />
       </div>
       <div className="text-center">
-        <h3 className="font-semibold text-foreground mb-1">Fehler beim Laden</h3>
+        <h3 className="font-semibold text-foreground mb-1">{tx('Fehler beim Laden')}</h3>
         <p className="text-sm text-muted-foreground max-w-xs">
           {repairing ? repairStatus : error.message}
         </p>
       </div>
       <div className="flex gap-2">
-        <Button variant="outline" size="sm" onClick={onRetry} disabled={repairing}>Erneut versuchen</Button>
+        <Button variant="outline" size="sm" onClick={onRetry} disabled={repairing}>{tx('Erneut versuchen')}</Button>
         <Button size="sm" onClick={handleRepair} disabled={repairing}>
           {repairing
             ? <span className="inline-block w-3.5 h-3.5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin mr-1" />
             : <IconTool size={14} className="mr-1" />}
-          {repairing ? 'Reparatur läuft...' : 'Dashboard reparieren'}
+          {repairing ? tx('Reparatur läuft...') : tx('Dashboard reparieren')}
         </Button>
       </div>
-      {repairFailed && <p className="text-sm text-destructive">Automatische Reparatur fehlgeschlagen. Bitte kontaktieren Sie den Support.</p>}
+      {repairFailed && <p className="text-sm text-destructive">{tx('Automatische Reparatur fehlgeschlagen. Bitte kontaktieren Sie den Support.')}</p>}
     </div>
   );
 }

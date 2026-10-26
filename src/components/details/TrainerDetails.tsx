@@ -4,17 +4,19 @@ import { extractRecordId } from '@/services/livingAppsService';
 import {
   RecordSection, RecordField, RecordRelation, RecordAttachments,
 } from '@/components/widgets/RecordView';
+import { t, appLabel, fieldLabel } from '@/i18n';
 import { SatelliteSection } from '@/components/SatelliteSection';
+import { usePermissions } from '@/lib/permissions';
 
 export interface TrainerDetailsProps {
   /** Der Record — enriched oder roh; alle Felder werden hier gerendert. */
   record: Trainer;
-  /** 1:N „Kurstermine": VOLLE Liste — der Block filtert auf diesen Record. */
+  /** 1:N „Kurstermine" (trainer): VOLLE Liste — der Block filtert auf diesen Record. */
   kurstermineList: Kurstermine[];
   /** Zeilen-Klick → overlay.push auf das Kurstermine-Detail (nie der Edit-Dialog). */
   onOpenKurstermine: (record: Kurstermine) => void;
   /** Kontextuelles „+": öffnet den Kurstermine-Dialog mit diesem Record vorgesetzt. */
-  onAddKurstermine: () => void;
+  onAddKurstermine?: () => void;
 }
 
 export function TrainerDetails({
@@ -23,26 +25,28 @@ export function TrainerDetails({
   onOpenKurstermine,
   onAddKurstermine,
 }: TrainerDetailsProps) {
+  // attachments are a write to this record — read-only without the platform right
+  const perms = usePermissions();
   return (
     <>
-      <RecordSection title="Details" cols={2}>
-        <RecordField label="Vorname" value={record.fields.vorname} format="text" />
-        <RecordField label="Nachname" value={record.fields.nachname} format="text" />
-        <RecordField label="E-Mail-Adresse" value={record.fields.email} format="email" />
-        <RecordField label="Trainer-Typ" value={record.fields.trainer_typ} format="pill" />
-        <RecordField label="Fachgebiet(e)" value={record.fields.fachgebiete} format="longtext" className="md:col-span-2" />
+      <RecordSection title={t('details')} cols={2}>
+        <RecordField label={fieldLabel('trainer', 'vorname')} value={record.fields.vorname} format="text" />
+        <RecordField label={fieldLabel('trainer', 'nachname')} value={record.fields.nachname} format="text" />
+        <RecordField label={fieldLabel('trainer', 'email')} value={record.fields.email} format="email" />
+        <RecordField label={fieldLabel('trainer', 'trainer_typ')} value={record.fields.trainer_typ} format="pill" />
+        <RecordField label={fieldLabel('trainer', 'fachgebiete')} value={record.fields.fachgebiete} format="longtext" className="md:col-span-2" />
       </RecordSection>
 
       <SatelliteSection
-        title="Kurstermine"
+        title={appLabel('kurstermine')}
         items={kurstermineList.filter(r => extractRecordId(r.fields.trainer) === record.record_id)}
-        map={r => ({ name: r.fields.ort ?? 'Kurstermine', meta: r.fields.startdatum })}
+        map={r => ({ name: r.fields.ort ?? appLabel('kurstermine'), meta: r.fields.startdatum })}
         onOpen={onOpenKurstermine}
         onAdd={onAddKurstermine}
         getKey={r => r.record_id}
       />
 
-      <RecordAttachments appId={APP_IDS.TRAINER} recordId={record.record_id} />
+      <RecordAttachments appId={APP_IDS.TRAINER} recordId={record.record_id} readOnly={!perms.canWrite('trainer')} />
     </>
   );
 }

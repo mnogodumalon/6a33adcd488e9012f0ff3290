@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DatePicker } from '@/components/DatePicker';
 import { lookupKey } from '@/lib/formatters';
+import { tx } from '@/i18n';
 
 // Empty PROXY_BASE → relative URLs (dashboard and form-proxy share the domain).
 const PROXY_BASE = '';
@@ -22,7 +23,7 @@ async function submitPublicForm(fields: Record<string, unknown>, captchaToken: s
   });
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(err || 'Submission failed');
+    throw new Error(err || tx('Submission failed'));
   }
   return res.json();
 }
@@ -81,7 +82,7 @@ export default function PublicFormKurstermine() {
     e.preventDefault();
     const token = readCaptchaToken();
     if (!token) {
-      setError('Bitte warte auf die Spam-Prüfung und versuche es erneut.');
+      setError(tx('Bitte warte auf die Spam-Prüfung und versuche es erneut.'));
       return;
     }
     setSubmitting(true);
@@ -90,7 +91,7 @@ export default function PublicFormKurstermine() {
       await submitPublicForm(cleanFields(fields), token);
       setSubmitted(true);
     } catch (err: any) {
-      setError(err.message || 'Etwas ist schiefgelaufen. Bitte versuche es erneut.');
+      setError(err.message || tx('Etwas ist schiefgelaufen. Bitte versuche es erneut.'));
     } finally {
       setSubmitting(false);
     }
@@ -105,10 +106,10 @@ export default function PublicFormKurstermine() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-xl font-bold">Vielen Dank!</h2>
-          <p className="text-muted-foreground">Deine Eingabe wurde erfolgreich übermittelt.</p>
+          <h2 className="text-xl font-bold">{tx('Vielen Dank!')}</h2>
+          <p className="text-muted-foreground">{tx('Deine Eingabe wurde erfolgreich übermittelt.')}</p>
           <Button variant="outline" className="mt-4" onClick={() => { setSubmitted(false); setFields({}); }}>
-            Weitere Eingabe
+            {tx('Weitere Eingabe')}
           </Button>
         </div>
       </div>
@@ -119,12 +120,12 @@ export default function PublicFormKurstermine() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-foreground">Kurstermine — Formular</h1>
+          <h1 className="text-2xl font-bold text-foreground">{tx('Kurstermine — Formular')}</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5 bg-card rounded-xl border border-border p-6 shadow-md">
           <div className="space-y-2">
-            <Label htmlFor="startdatum">Startdatum und -uhrzeit *</Label>
+            <Label htmlFor="startdatum">{tx('Startdatum und -uhrzeit *')}</Label>
             <DatePicker
               id="startdatum"
               placeholder=""
@@ -135,7 +136,7 @@ export default function PublicFormKurstermine() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="enddatum">Enddatum und -uhrzeit *</Label>
+            <Label htmlFor="enddatum">{tx('Enddatum und -uhrzeit *')}</Label>
             <DatePicker
               id="enddatum"
               placeholder=""
@@ -146,7 +147,7 @@ export default function PublicFormKurstermine() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="ort">Ort (Freitext)</Label>
+            <Label htmlFor="ort">{tx('Ort (Freitext)')}</Label>
             <Input
               id="ort"
               placeholder=""
@@ -155,7 +156,7 @@ export default function PublicFormKurstermine() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="online_link">Online-Link</Label>
+            <Label htmlFor="online_link">{tx('Online-Link')}</Label>
             <Input
               id="online_link"
               value={fields.online_link ?? ''}
@@ -163,7 +164,7 @@ export default function PublicFormKurstermine() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="anmeldefrist">Anmeldefrist *</Label>
+            <Label htmlFor="anmeldefrist">{tx('Anmeldefrist *')}</Label>
             <DatePicker
               id="anmeldefrist"
               placeholder=""
@@ -174,7 +175,7 @@ export default function PublicFormKurstermine() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="max_teilnehmer_abweichend">Maximale Teilnehmerzahl (abweichend vom Kurs)</Label>
+            <Label htmlFor="max_teilnehmer_abweichend">{tx('Maximale Teilnehmerzahl (abweichend vom Kurs)')}</Label>
             <Input
               id="max_teilnehmer_abweichend"
               type="number"
@@ -186,7 +187,7 @@ export default function PublicFormKurstermine() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="status">Status *</Label>
+            <Label htmlFor="status">{tx('Status *')}</Label>
             <div role="radiogroup" className="flex flex-wrap gap-1.5">
               <button
                 type="button"
@@ -199,7 +200,7 @@ export default function PublicFormKurstermine() {
                     : 'bg-background text-foreground border-input hover:bg-accent'
                 }`}
               >
-                Geplant
+                {tx('Geplant')}
               </button>
               <button
                 type="button"
@@ -212,7 +213,7 @@ export default function PublicFormKurstermine() {
                     : 'bg-background text-foreground border-input hover:bg-accent'
                 }`}
               >
-                Offen zur Anmeldung
+                {tx('Offen zur Anmeldung')}
               </button>
               <button
                 type="button"
@@ -225,7 +226,7 @@ export default function PublicFormKurstermine() {
                     : 'bg-background text-foreground border-input hover:bg-accent'
                 }`}
               >
-                Voll
+                {tx('Voll')}
               </button>
               <button
                 type="button"
@@ -238,7 +239,7 @@ export default function PublicFormKurstermine() {
                     : 'bg-background text-foreground border-input hover:bg-accent'
                 }`}
               >
-                Durchgeführt
+                {tx('Durchgeführt')}
               </button>
               <button
                 type="button"
@@ -251,7 +252,7 @@ export default function PublicFormKurstermine() {
                     : 'bg-background text-foreground border-input hover:bg-accent'
                 }`}
               >
-                Abgesagt
+                {tx('Abgesagt')}
               </button>
             </div>
           </div>
@@ -270,12 +271,12 @@ export default function PublicFormKurstermine() {
           )}
 
           <Button type="submit" className="w-full" disabled={submitting}>
-            {submitting ? 'Wird gesendet...' : 'Absenden'}
+            {submitting ? tx('Wird gesendet...') : tx('Absenden')}
           </Button>
         </form>
 
         <p className="text-xs text-muted-foreground text-center mt-4">
-          Powered by Klar
+          {tx('Powered by Klar')}
         </p>
       </div>
     </div>

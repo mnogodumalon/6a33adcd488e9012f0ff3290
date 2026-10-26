@@ -9,14 +9,13 @@
  * ONLY write inside the marker blocks — everything outside is scaffold and is
  * overwritten on the next /build/update.
  *
- *   // <custom:intent-imports>
+ *   <custom:intent-imports>
  *   import { IconCalendarPlus } from '@tabler/icons-react';
- *   // </custom:intent-imports>
+ *   </custom:intent-imports>
  *   …
- *   // <custom:intents>
-  { path: '/intents/kurstermin-planen', label: 'Termin planen', icon: IconCalendarPlus, description: 'Kurs auswählen, Termin anlegen und Trainer zuweisen' },
-  { path: '/intents/teilnehmer-anmelden', label: 'Teilnehmer anmelden', icon: IconUserPlus, description: 'Teilnehmer für einen Kurstermin anmelden' },
-  // </custom:intents>
+ *   <custom:intents>
+ *   { path: '/intents/neue-buchung', label: { de: 'Neue Buchung', en: 'New booking' }, icon: IconCalendarPlus, description: { de: 'Buchung in 3 Schritten anlegen', en: 'Create a booking in 3 steps' } },
+ *   </custom:intents>
  */
 import type { ComponentType } from 'react';
 
@@ -27,18 +26,25 @@ import { IconCalendarPlus, IconUserPlus } from '@tabler/icons-react';
 export interface IntentLink {
   /** Route path as wired in App.tsx (HashRouter), e.g. '/intents/neue-buchung'. */
   path: string;
-  /** Short label shown in the sidebar (German, 1–3 words). */
-  label: string;
+  /**
+   * Short sidebar label (1–3 words). Preferred: both UI languages
+   * ({ de, en } — the runtime switcher picks the active one; cs stays
+   * readable for legacy entries). A plain string stays valid and renders as-is.
+   */
+  label: string | { de?: string; en?: string; cs?: string };
   /** Tabler icon COMPONENT reference (not rendered JSX), e.g. IconCalendarPlus. */
   icon?: ComponentType<{ size?: number | string; className?: string; stroke?: number | string }>;
-  /** One-line purpose — shown as tooltip. */
-  description?: string;
+  /**
+   * One-line purpose. Same shape as `label`: prefer both UI languages so a
+   * language switch reaches it; a plain string stays valid.
+   */
+  description?: string | { de?: string; en?: string; cs?: string };
 }
 
 export const INTENTS: IntentLink[] = [
   // <custom:intents>
-  { path: '/intents/kurstermin-planen', label: 'Termin planen', icon: IconCalendarPlus, description: 'Kurs auswählen, Termin anlegen und Trainer zuweisen' },
-  { path: '/intents/teilnehmer-anmelden', label: 'Teilnehmer anmelden', icon: IconUserPlus, description: 'Teilnehmer für einen Kurstermin anmelden' },
+  { path: '/intents/kurstermin-planen', label: { de: 'Termin planen', en: 'Schedule session' }, icon: IconCalendarPlus, description: { de: 'Kurs auswählen, Termin anlegen und Trainer zuweisen', en: 'Select course, create session and assign trainer' } },
+  { path: '/intents/teilnehmer-anmelden', label: { de: 'Teilnehmer anmelden', en: 'Register participant' }, icon: IconUserPlus, description: { de: 'Teilnehmer für einen Kurstermin anmelden', en: 'Register participants for a course session' } },
   // </custom:intents>
 ];
 
@@ -50,3 +56,13 @@ export const INTENTS: IntentLink[] = [
  * never ran).
  */
 export const INTENTS_PENDING = false;
+
+/**
+ * When the Phase-1 bundle was deployed (ISO, set by the service together with
+ * INTENTS_PENDING). The sidebar stops showing the ghost row PENDING_MAX_MINUTES
+ * later on its own: a Phase 2 that ended red (or never ran) used to leave a
+ * pulsing "werden erstellt …" in every deployed Phase-1 bundle forever — no
+ * code path redeploys Phase 1 without the flag (live 03.09.2026).
+ */
+export const INTENTS_PENDING_SINCE: string | null = null;
+export const PENDING_MAX_MINUTES = 30;

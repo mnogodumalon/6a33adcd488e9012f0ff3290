@@ -1,3 +1,17 @@
+/**
+ * RaeumeUndOrteDialog — pre-generated create/edit dialog for RaeumeUndOrte.
+ *
+ * Props: open, onClose, onSubmit(fields) => Promise<void>, defaultValues?,
+ * recordId? (pass when EDITING — enables the attachments section),
+ * enablePhotoScan?, enablePhotoLocation?.
+ *
+ * defaultValues is SHAPE-TOLERANT and its prop type is the EXPORTED
+ * RaeumeUndOrteDialogDefaults — NOT the entity field type: lookup fields accept
+ * the bare KEY string (or LookupValue), applookup fields the bare record id
+ * (or record URL); the dialog normalizes. Type prefill STATE with the export:
+ *  ❌ useState<Partial<RaeumeUndOrte['fields']>>({ … })   // LookupValue fields reject string prefills (TS2322)
+ *  ✓ useState<RaeumeUndOrteDialogDefaults | undefined>(undefined)
+ */
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import type { RaeumeUndOrte, LookupValue } from '@/types/app';
 import { APP_IDS, LOOKUP_OPTIONS } from '@/types/app';
@@ -13,11 +27,20 @@ import type { ComputedContext } from '@/config/form-enhancements/types';
 import { applyFieldOrder, flattenFieldOrder, applyDefaults, evalComputed, numberInputProps, clampNumberValue, classifyComputed, extractApplookupRefs, mergeApplookupRefs, resolveApplookupRef } from '@/config/form-enhancements/types';
 import { formEnhancements, computedDeps, computedApplookupRefs } from '@/config/form-enhancements/RaeumeUndOrte';
 import { AttachmentsSection } from '@/components/AttachmentsSection';
+import { requiredMessage } from '@/lib/journey/messages';
+import { t, appLabel, fieldLabel, lookupLabel, localeTag, CURRENCY } from '@/i18n';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { IconAlertCircle, IconCamera, IconChevronDown, IconCircleCheck, IconClipboard, IconFileText, IconLoader2, IconPhotoPlus, IconSparkles, IconUpload, IconX } from '@tabler/icons-react';
 import { fileToDataUri, extractFromInput, extractPhotoMeta, reverseGeocode } from '@/lib/ai';
 import { lookupKey } from '@/lib/formatters';
+
+/** Widened prefill type for RaeumeUndOrteDialog.defaultValues — see file header. */
+export type RaeumeUndOrteDialogDefaults = Omit<RaeumeUndOrte['fields'], 'raum_typ' | 'status' | 'online_raum'> & {
+    raum_typ?: LookupValue | string;
+    status?: LookupValue | string;
+    online_raum?: LookupValue | string;
+  };
 
 interface RaeumeUndOrteDialogProps {
   open: boolean;
@@ -26,11 +49,7 @@ interface RaeumeUndOrteDialogProps {
   /** SHAPE-TOLERANT: lookup fields accept the bare key (string) or the
    *  LookupValue object; applookup fields the bare record id or the full
    *  record URL — the dialog normalizes both. */
-  defaultValues?: Omit<RaeumeUndOrte['fields'], 'raum_typ' | 'status' | 'online_raum'> & {
-    raum_typ?: LookupValue | string;
-    status?: LookupValue | string;
-    online_raum?: LookupValue | string;
-  };
+  defaultValues?: RaeumeUndOrteDialogDefaults;
   /** Record id when editing — enables the attachments section. Omit on create. */
   recordId?: string;
   enablePhotoScan?: boolean;
@@ -73,6 +92,8 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
       return true;
     }
   }, [fields, normalizedDefaults]);
+  // Fields the plan assigns to a tool (empty without a plan).
+  const SYSTEM_ASSIGNED: string[] = [];
   const [showErrors, setShowErrors] = useState(false);
   const REQUIRED_FIELDS = ['raumname', 'raum_typ', 'status', 'online_raum'] as const;
   const missingRequired = REQUIRED_FIELDS.filter(k => {
@@ -185,7 +206,7 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
       await onSubmit(clean as RaeumeUndOrte['fields']);
       onClose();
     } catch (err) {
-      setSubmitError(err instanceof Error && err.message ? err.message : 'Speichern fehlgeschlagen.');
+      setSubmitError(err instanceof Error && err.message ? err.message : t('submit_error'));
     } finally {
       setSaving(false);
     }
@@ -249,7 +270,7 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
       setScanSuccess(true);
       setTimeout(() => setScanSuccess(false), 3000);
     } catch (err) {
-      console.error('Scan fehlgeschlagen:', err);
+      console.error(`${t('scan_error')}:`, err);
       alert(err instanceof Error ? err.message : String(err));
     } finally {
       setScanning(false);
@@ -284,12 +305,14 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
     }
   }, []);
 
-  const DIALOG_INTENT = defaultValues ? 'Räume und Orte bearbeiten' : 'Räume und Orte hinzufügen';
+  const DIALOG_INTENT = defaultValues
+    ? t('edit_entity', { entity: appLabel('raeume_und_orte') })
+    : t('new_entity', { entity: appLabel('raeume_und_orte') });
 
   const fieldBlocks: Record<string, React.ReactNode> = {
     'raumname': (
       <div key="raumname" className="space-y-1.5">
-        <Label htmlFor="raumname">Name des Raums/Orts <span className="text-destructive" aria-hidden="true">*</span></Label>
+        <Label htmlFor="raumname">{fieldLabel('raeume_und_orte', 'raumname')} <span className="text-destructive" aria-hidden="true">*</span></Label>
         <Input
           id="raumname"
           placeholder=""
@@ -298,13 +321,13 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
           required
         />
         {showErrors && !fields.raumname && (
-          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+          <p className="text-xs text-destructive mt-1" role="alert">{requiredMessage('raeume_und_orte', 'raumname')}</p>
         )}
       </div>
     ),
     'strasse': (
       <div key="strasse" className="space-y-1.5">
-        <Label htmlFor="strasse">Straße</Label>
+        <Label htmlFor="strasse">{fieldLabel('raeume_und_orte', 'strasse')}</Label>
         <Input
           id="strasse"
           placeholder=""
@@ -315,7 +338,7 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
     ),
     'hausnummer': (
       <div key="hausnummer" className="space-y-1.5">
-        <Label htmlFor="hausnummer">Hausnummer</Label>
+        <Label htmlFor="hausnummer">{fieldLabel('raeume_und_orte', 'hausnummer')}</Label>
         <Input
           id="hausnummer"
           placeholder=""
@@ -326,7 +349,7 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
     ),
     'plz': (
       <div key="plz" className="space-y-1.5">
-        <Label htmlFor="plz">PLZ</Label>
+        <Label htmlFor="plz">{fieldLabel('raeume_und_orte', 'plz')}</Label>
         <Input
           id="plz"
           placeholder=""
@@ -337,7 +360,7 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
     ),
     'stadt': (
       <div key="stadt" className="space-y-1.5">
-        <Label htmlFor="stadt">Stadt</Label>
+        <Label htmlFor="stadt">{fieldLabel('raeume_und_orte', 'stadt')}</Label>
         <Input
           id="stadt"
           placeholder=""
@@ -348,10 +371,11 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
     ),
     'kapazitaet': (
       <div key="kapazitaet" className="space-y-1.5">
-        <Label htmlFor="kapazitaet">Maximale Personenzahl</Label>
+        <Label htmlFor="kapazitaet">{fieldLabel('raeume_und_orte', 'kapazitaet')}</Label>
         <Input
           id="kapazitaet"
           type="number"
+          inputMode="decimal"
           step="any"
           {...numberInputProps(formEnhancements, 'kapazitaet')}
           placeholder=""
@@ -362,7 +386,7 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
     ),
     'ausstattung': (
       <div key="ausstattung" className="space-y-1.5">
-        <Label htmlFor="ausstattung">Ausstattung</Label>
+        <Label htmlFor="ausstattung">{fieldLabel('raeume_und_orte', 'ausstattung')}</Label>
         <Textarea
           id="ausstattung"
           placeholder=""
@@ -374,7 +398,7 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
     ),
     'raum_typ': (
       <div key="raum_typ" className="space-y-1.5">
-        <Label htmlFor="raum_typ">Typ <span className="text-destructive" aria-hidden="true">*</span></Label>
+        <Label htmlFor="raum_typ">{fieldLabel('raeume_und_orte', 'raum_typ')} <span className="text-destructive" aria-hidden="true">*</span></Label>
         <div role="radiogroup" className="flex flex-wrap gap-1.5">
           <button
             type="button"
@@ -387,7 +411,7 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
                 : 'bg-background text-foreground border-input hover:bg-accent'
             }`}
           >
-            Intern
+            {lookupLabel('raeume_und_orte', 'raum_typ', 'intern') ?? 'Intern'}
           </button>
           <button
             type="button"
@@ -400,17 +424,17 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
                 : 'bg-background text-foreground border-input hover:bg-accent'
             }`}
           >
-            Extern
+            {lookupLabel('raeume_und_orte', 'raum_typ', 'extern') ?? 'Extern'}
           </button>
         </div>
         {showErrors && !fields.raum_typ && (
-          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+          <p className="text-xs text-destructive mt-1" role="alert">{requiredMessage('raeume_und_orte', 'raum_typ')}</p>
         )}
       </div>
     ),
     'status': (
       <div key="status" className="space-y-1.5">
-        <Label htmlFor="status">Status <span className="text-destructive" aria-hidden="true">*</span></Label>
+        <Label htmlFor="status">{fieldLabel('raeume_und_orte', 'status')} <span className="text-destructive" aria-hidden="true">*</span></Label>
         <div role="radiogroup" className="flex flex-wrap gap-1.5">
           <button
             type="button"
@@ -423,7 +447,7 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
                 : 'bg-background text-foreground border-input hover:bg-accent'
             }`}
           >
-            Aktiv
+            {lookupLabel('raeume_und_orte', 'status', 'aktiv') ?? 'Aktiv'}
           </button>
           <button
             type="button"
@@ -436,17 +460,17 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
                 : 'bg-background text-foreground border-input hover:bg-accent'
             }`}
           >
-            Inaktiv
+            {lookupLabel('raeume_und_orte', 'status', 'inaktiv') ?? 'Inaktiv'}
           </button>
         </div>
         {showErrors && !fields.status && (
-          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+          <p className="text-xs text-destructive mt-1" role="alert">{requiredMessage('raeume_und_orte', 'status')}</p>
         )}
       </div>
     ),
     'online_raum': (
       <div key="online_raum" className="space-y-1.5">
-        <Label htmlFor="online_raum">Online-Raum <span className="text-destructive" aria-hidden="true">*</span></Label>
+        <Label htmlFor="online_raum">{fieldLabel('raeume_und_orte', 'online_raum')} <span className="text-destructive" aria-hidden="true">*</span></Label>
         <div role="radiogroup" className="flex flex-wrap gap-1.5">
           <button
             type="button"
@@ -459,7 +483,7 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
                 : 'bg-background text-foreground border-input hover:bg-accent'
             }`}
           >
-            Ja
+            {lookupLabel('raeume_und_orte', 'online_raum', 'ja') ?? 'Ja'}
           </button>
           <button
             type="button"
@@ -472,19 +496,22 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
                 : 'bg-background text-foreground border-input hover:bg-accent'
             }`}
           >
-            Nein
+            {lookupLabel('raeume_und_orte', 'online_raum', 'nein') ?? 'Nein'}
           </button>
         </div>
         {showErrors && !fields.online_raum && (
-          <p className="text-xs text-destructive mt-1">Pflichtfeld</p>
+          <p className="text-xs text-destructive mt-1" role="alert">{requiredMessage('raeume_und_orte', 'online_raum')}</p>
         )}
       </div>
     ),
     'online_link': (
       <div key="online_link" className="space-y-1.5">
-        <Label htmlFor="online_link">Online-Link</Label>
+        <Label htmlFor="online_link">{fieldLabel('raeume_und_orte', 'online_link')}</Label>
         <Input
           id="online_link"
+          type="url"
+          inputMode="url"
+          placeholder=""
           value={fields.online_link ?? ''}
           onChange={e => setFields(f => ({ ...f, online_link: e.target.value }))}
         />
@@ -492,7 +519,7 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
     ),
     'bemerkung': (
       <div key="bemerkung" className="space-y-1.5">
-        <Label htmlFor="bemerkung">Bemerkung</Label>
+        <Label htmlFor="bemerkung">{fieldLabel('raeume_und_orte', 'bemerkung')}</Label>
         <Textarea
           id="bemerkung"
           placeholder=""
@@ -571,9 +598,9 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
     // Backend-Feld mit €-Label ODER virtueller Computed-Key, dessen Name nach Geld aussieht.
     const looksLikeCurrency = CURRENCY_KEYS.has(k) || /(?:kosten|preis|betrag|gesamt|netto|brutto|summe|mwst|rabatt|anzahlung|umsatz|saldo)/i.test(k);
     if (looksLikeCurrency) {
-      return n.toLocaleString('de-DE', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return n.toLocaleString(localeTag(), { style: 'currency', currency: CURRENCY, minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
-    return n.toLocaleString('de-DE', { maximumFractionDigits: 2 });
+    return n.toLocaleString(localeTag(), { maximumFractionDigits: 2 });
   }
 
   return (
@@ -595,14 +622,14 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
               }`}
             >
               <IconSparkles className={`h-3.5 w-3.5 ${aiOpen ? '' : 'text-primary'}`} />
-              <span className="hidden sm:inline">KI-Ausfüllen</span>
+              <span className="hidden sm:inline">{t('smart_fill')}</span>
               <IconChevronDown className={`h-3 w-3 transition-transform ${aiOpen ? 'rotate-180' : ''}`} />
             </button>
           )}
         </DialogHeader>
         {enablePhotoScan && aiOpen && (
           <div id="ai-fill-panel" className="border-b bg-muted/20 px-6 py-4 space-y-3">
-            <p className="text-xs text-muted-foreground">Versteht Fotos, Dokumente und Text und füllt alles für dich aus</p>
+            <p className="text-xs text-muted-foreground">{t('scan_header_sub')}</p>
             <div className="flex items-start gap-2 pl-0.5">
               <Checkbox
                 id="ai-use-personal-info"
@@ -612,21 +639,21 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
               />
               <span className="text-xs text-muted-foreground leading-snug">
                 <Label htmlFor="ai-use-personal-info" className="text-xs font-normal text-muted-foreground cursor-pointer inline">
-                  KI-Assistent darf zusätzlich Informationen zu meiner Person verwenden
+                  {t('useinfo_label')}
                 </Label>
                 {' '}
                 <button type="button" onClick={handleShowProfileInfo} className="text-xs text-primary hover:underline whitespace-nowrap">
-                  {profileLoading ? 'Lade...' : '(mehr Infos)'}
+                  {profileLoading ? t('useinfo_loading') : `(${t('useinfo_more')})`}
                 </button>
               </span>
             </div>
             {showProfileInfo && (
               <div className="rounded-md border bg-muted/50 p-2 text-xs max-h-40 overflow-y-auto">
-                <p className="font-medium mb-1">Folgende Infos über dich können von der KI genutzt werden:</p>
+                <p className="font-medium mb-1">{t('profile_preamble')}</p>
                 {profileData ? Object.values(profileData).map((v, i) => (
                   <span key={i}>{i > 0 && ", "}{typeof v === "object" ? JSON.stringify(v) : String(v)}</span>
                 )) : (
-                  <span className="text-muted-foreground">Profil konnte nicht geladen werden</span>
+                  <span className="text-muted-foreground">{t('useinfo_error')}</span>
                 )}
               </div>
             )}
@@ -657,8 +684,8 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
                     <IconLoader2 className="h-7 w-7 text-primary animate-spin" />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-medium">KI analysiert...</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Felder werden automatisch ausgefüllt</p>
+                    <p className="text-sm font-medium">{t('scan_analyzing')}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{t('scan_analyzing_sub')}</p>
                   </div>
                 </div>
               ) : scanSuccess ? (
@@ -667,8 +694,8 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
                     <IconCircleCheck className="h-7 w-7 text-green-600 dark:text-green-400" />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-medium text-green-700 dark:text-green-400">Felder ausgefüllt!</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Prüfe die Werte und passe sie ggf. an</p>
+                    <p className="text-sm font-medium text-green-700 dark:text-green-400">{t('scan_success')}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{t('scan_success_sub')}</p>
                   </div>
                 </div>
               ) : (
@@ -677,7 +704,7 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
                     <IconPhotoPlus className="h-7 w-7 text-primary/70" />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-medium">Foto oder Dokument hierher ziehen oder auswählen</p>
+                    <p className="text-sm font-medium">{t('scan_upload')}</p>
                   </div>
                 </div>
               )}
@@ -701,11 +728,11 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
             <div className="grid grid-cols-3 gap-2">
               <Button type="button" variant="outline" size="sm" className="h-10 text-xs" disabled={scanning}
                 onClick={e => { e.stopPropagation(); cameraInputRef.current?.click(); }}>
-                <IconCamera className="h-3.5 w-3.5 mr-1" />Kamera
+                <IconCamera className="h-3.5 w-3.5 mr-1" />{t('scan_camera_btn')}
               </Button>
               <Button type="button" variant="outline" size="sm" className="h-10 text-xs" disabled={scanning}
                 onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}>
-                <IconUpload className="h-3.5 w-3.5 mr-1" />Foto wählen
+                <IconUpload className="h-3.5 w-3.5 mr-1" />{t('scan_file_btn')}
               </Button>
               <Button type="button" variant="outline" size="sm" className="h-10 text-xs" disabled={scanning}
                 onClick={e => {
@@ -716,13 +743,13 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
                     setTimeout(() => { if (fileInputRef.current) fileInputRef.current.accept = 'image/*,application/pdf'; }, 100);
                   }
                 }}>
-                <IconFileText className="h-3.5 w-3.5 mr-1" />Dokument
+                <IconFileText className="h-3.5 w-3.5 mr-1" />{t('scan_doc_btn')}
               </Button>
             </div>
 
             <div className="relative">
               <Textarea
-                placeholder="Text eingeben oder einfügen, z.B. Notizen, E-Mails, Beschreibungen..."
+                placeholder={t('scan_text_placeholder')}
                 value={aiText}
                 onChange={e => {
                   setAiText(e.target.value);
@@ -750,7 +777,7 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
                     if (text) setAiText(prev => prev ? prev + '\n' + text : text);
                   } catch {}
                 }}
-                title="Paste"
+                title={t('paste')}
               >
                 <IconClipboard className="h-4 w-4" />
               </button>
@@ -764,7 +791,7 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
                 disabled={scanning}
                 onClick={() => handleAiExtract()}
               >
-                <IconSparkles className="h-3.5 w-3.5 mr-1.5" />Analysieren
+                <IconSparkles className="h-3.5 w-3.5 mr-1.5" />{t('scan_text_analyze')}
               </Button>
             )}
           </div>
@@ -776,9 +803,25 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
               const renderField = (k: string) => {
                 const inlineHints = computedLayout.anchors[k] ?? [];
                 const refs = applookupRefs[k] ?? [];
+                // A field the plan gives to a TOOL. On CREATE it is not shown
+                // at all — the value does not exist yet and typing one only
+                // gets overwritten. On EDIT it stays a normal input with a
+                // note: when a tool could not compose its value (a missing
+                // ingredient), this is the only place to repair the record.
+                if (SYSTEM_ASSIGNED.includes(k) && !recordId) {
+                  return (
+                    <div key={k} className="space-y-1.5 min-w-0">
+                      <Label>{fieldLabel('raeume_und_orte', k)}</Label>
+                      <p className="text-sm text-muted-foreground">{t('assigned_by_system')}</p>
+                    </div>
+                  );
+                }
                 return (
                   <div key={k} className="space-y-1.5 min-w-0">
                     {fieldBlocks[k]}
+                    {SYSTEM_ASSIGNED.includes(k) && (
+                      <p className="text-xs text-muted-foreground">{t('assigned_by_system')}</p>
+                    )}
                     {refs.map(({ lookupKey }) => {
                       // Show the live numeric value the formula will pull from
                       // the selected lookup target (e.g. "Monatspreis: 34,90 €"
@@ -859,7 +902,7 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
             {showErrors && missingRequired.length > 0 && (
               <p className="text-xs text-destructive flex items-center gap-1.5" role="alert">
                 <IconAlertCircle className="h-3.5 w-3.5 shrink-0" />
-                Bitte fülle die markierten Pflichtfelder aus.
+                {t('missing_required')}
               </p>
             )}
             {recordId && (
@@ -875,13 +918,13 @@ export function RaeumeUndOrteDialog({ open, onClose, onSubmit, defaultValues, re
             </div>
           )}
           <DialogFooter className="sticky bottom-0 border-t bg-background/95 backdrop-blur px-6 py-3 gap-2 max-sm:flex-row">
-            <Button type="button" variant="outline" onClick={onClose} className="max-sm:h-12 max-sm:flex-1 max-sm:text-base">Abbrechen</Button>
+            <Button type="button" variant="outline" onClick={onClose} className="max-sm:h-12 max-sm:flex-1 max-sm:text-base">{t('cancel')}</Button>
             <Button
               type="submit"
               className="max-sm:h-12 max-sm:flex-1 max-sm:text-base"
               disabled={saving || !isDirty || (showErrors && missingRequired.length > 0)}
             >
-              {saving ? 'Speichern...' : defaultValues ? 'Speichern' : 'Erstellen'}
+              {saving ? t('saving') : defaultValues ? t('save') : t('create')}
             </Button>
           </DialogFooter>
         </form>

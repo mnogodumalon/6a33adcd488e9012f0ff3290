@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { lookupKey } from '@/lib/formatters';
+import { tx } from '@/i18n';
 
 // Empty PROXY_BASE → relative URLs (dashboard and form-proxy share the domain).
 const PROXY_BASE = '';
@@ -21,7 +22,7 @@ async function submitPublicForm(fields: Record<string, unknown>, captchaToken: s
   });
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(err || 'Submission failed');
+    throw new Error(err || tx('Submission failed'));
   }
   return res.json();
 }
@@ -80,7 +81,7 @@ export default function PublicFormTeilnehmer() {
     e.preventDefault();
     const token = readCaptchaToken();
     if (!token) {
-      setError('Bitte warte auf die Spam-Prüfung und versuche es erneut.');
+      setError(tx('Bitte warte auf die Spam-Prüfung und versuche es erneut.'));
       return;
     }
     setSubmitting(true);
@@ -89,7 +90,7 @@ export default function PublicFormTeilnehmer() {
       await submitPublicForm(cleanFields(fields), token);
       setSubmitted(true);
     } catch (err: any) {
-      setError(err.message || 'Etwas ist schiefgelaufen. Bitte versuche es erneut.');
+      setError(err.message || tx('Etwas ist schiefgelaufen. Bitte versuche es erneut.'));
     } finally {
       setSubmitting(false);
     }
@@ -104,10 +105,10 @@ export default function PublicFormTeilnehmer() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-xl font-bold">Vielen Dank!</h2>
-          <p className="text-muted-foreground">Deine Eingabe wurde erfolgreich übermittelt.</p>
+          <h2 className="text-xl font-bold">{tx('Vielen Dank!')}</h2>
+          <p className="text-muted-foreground">{tx('Deine Eingabe wurde erfolgreich übermittelt.')}</p>
           <Button variant="outline" className="mt-4" onClick={() => { setSubmitted(false); setFields({}); }}>
-            Weitere Eingabe
+            {tx('Weitere Eingabe')}
           </Button>
         </div>
       </div>
@@ -118,12 +119,12 @@ export default function PublicFormTeilnehmer() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-foreground">Teilnehmer — Formular</h1>
+          <h1 className="text-2xl font-bold text-foreground">{tx('Teilnehmer — Formular')}</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5 bg-card rounded-xl border border-border p-6 shadow-md">
           <div className="space-y-2">
-            <Label htmlFor="vorname">Vorname *</Label>
+            <Label htmlFor="vorname">{tx('Vorname *')}</Label>
             <Input
               id="vorname"
               placeholder=""
@@ -133,7 +134,7 @@ export default function PublicFormTeilnehmer() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="nachname">Nachname *</Label>
+            <Label htmlFor="nachname">{tx('Nachname *')}</Label>
             <Input
               id="nachname"
               placeholder=""
@@ -143,7 +144,7 @@ export default function PublicFormTeilnehmer() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email">E-Mail-Adresse *</Label>
+            <Label htmlFor="email">{tx('E-Mail-Adresse *')}</Label>
             <Input
               id="email"
               type="email"
@@ -153,7 +154,7 @@ export default function PublicFormTeilnehmer() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="firma_abteilung">Firma / Abteilung</Label>
+            <Label htmlFor="firma_abteilung">{tx('Firma / Abteilung')}</Label>
             <Input
               id="firma_abteilung"
               placeholder=""
@@ -162,7 +163,7 @@ export default function PublicFormTeilnehmer() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="rolle">Rolle im Unternehmen</Label>
+            <Label htmlFor="rolle">{tx('Rolle im Unternehmen')}</Label>
             <Input
               id="rolle"
               placeholder=""
@@ -171,7 +172,7 @@ export default function PublicFormTeilnehmer() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="aktiv_status">Aktiv-Status *</Label>
+            <Label htmlFor="aktiv_status">{tx('Aktiv-Status *')}</Label>
             <div role="radiogroup" className="flex flex-wrap gap-1.5">
               <button
                 type="button"
@@ -184,7 +185,7 @@ export default function PublicFormTeilnehmer() {
                     : 'bg-background text-foreground border-input hover:bg-accent'
                 }`}
               >
-                Inaktiv
+                {tx('Inaktiv')}
               </button>
               <button
                 type="button"
@@ -197,7 +198,7 @@ export default function PublicFormTeilnehmer() {
                     : 'bg-background text-foreground border-input hover:bg-accent'
                 }`}
               >
-                Aktiv
+                {tx('Aktiv')}
               </button>
             </div>
           </div>
@@ -216,12 +217,12 @@ export default function PublicFormTeilnehmer() {
           )}
 
           <Button type="submit" className="w-full" disabled={submitting}>
-            {submitting ? 'Wird gesendet...' : 'Absenden'}
+            {submitting ? tx('Wird gesendet...') : tx('Absenden')}
           </Button>
         </form>
 
         <p className="text-xs text-muted-foreground text-center mt-4">
-          Powered by Klar
+          {tx('Powered by Klar')}
         </p>
       </div>
     </div>

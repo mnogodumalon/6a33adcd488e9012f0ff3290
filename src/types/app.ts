@@ -1,6 +1,14 @@
+import { lookupLabel } from '@/i18n';
+
 // AUTOMATICALLY GENERATED TYPES - DO NOT EDIT
 
 export type LookupValue = { key: string; label: string };
+/** A raw record URL (applookup reference). NEVER render this directly
+ *  in JSX — it is a URL, not a display value. Show the enriched `*Name`
+ *  field or resolve it via the entity map instead. Assignable to/from
+ *  string everywhere; the `& {}` keeps the alias NAME visible in tsc
+ *  error messages (a plain primitive alias gets normalized away). */
+export type RecordUrl = string & {};
 export type GeoLocation = { lat: number; long: number; info?: string };
 
 export type AttachmentType = 'file' | 'note' | 'url' | 'json';
@@ -23,6 +31,12 @@ export interface AttachmentInput {
 
 export interface Trainer {
   record_id: string;
+  /** The API field. */
+  created_at: string;
+  updated_at: string | null;
+  /** Alias of created_at, filled by the read helpers. The API sends
+   *  snake_case only — reading `createdat` off a raw record yields
+   *  undefined, which type-checks and then crashes at runtime. */
   createdat: string;
   updatedat: string | null;
   fields: {
@@ -36,6 +50,12 @@ export interface Trainer {
 
 export interface Teilnehmer {
   record_id: string;
+  /** The API field. */
+  created_at: string;
+  updated_at: string | null;
+  /** Alias of created_at, filled by the read helpers. The API sends
+   *  snake_case only — reading `createdat` off a raw record yields
+   *  undefined, which type-checks and then crashes at runtime. */
   createdat: string;
   updatedat: string | null;
   fields: {
@@ -50,6 +70,12 @@ export interface Teilnehmer {
 
 export interface RaeumeUndOrte {
   record_id: string;
+  /** The API field. */
+  created_at: string;
+  updated_at: string | null;
+  /** Alias of created_at, filled by the read helpers. The API sends
+   *  snake_case only — reading `createdat` off a raw record yields
+   *  undefined, which type-checks and then crashes at runtime. */
   createdat: string;
   updatedat: string | null;
   fields: {
@@ -70,17 +96,23 @@ export interface RaeumeUndOrte {
 
 export interface Kurstermine {
   record_id: string;
+  /** The API field. */
+  created_at: string;
+  updated_at: string | null;
+  /** Alias of created_at, filled by the read helpers. The API sends
+   *  snake_case only — reading `createdat` off a raw record yields
+   *  undefined, which type-checks and then crashes at runtime. */
   createdat: string;
   updatedat: string | null;
   fields: {
-    raum?: string; // applookup -> URL zu 'RaeumeUndOrte' Record
-    kurs?: string; // applookup -> URL zu 'Kurse' Record
+    raum?: RecordUrl; // applookup -> URL zu 'RaeumeUndOrte' Record
+    kurs?: RecordUrl; // applookup -> URL zu 'Kurse' Record
     startdatum?: string; // Format: YYYY-MM-DD oder ISO String
     enddatum?: string; // Format: YYYY-MM-DD oder ISO String
     ort?: string;
     online_link?: string;
     anmeldefrist?: string; // Format: YYYY-MM-DD oder ISO String
-    trainer?: string; // applookup -> URL zu 'Trainer' Record
+    trainer?: RecordUrl; // applookup -> URL zu 'Trainer' Record
     max_teilnehmer_abweichend?: number;
     status?: LookupValue;
   };
@@ -88,6 +120,12 @@ export interface Kurstermine {
 
 export interface Kurse {
   record_id: string;
+  /** The API field. */
+  created_at: string;
+  updated_at: string | null;
+  /** Alias of created_at, filled by the read helpers. The API sends
+   *  snake_case only — reading `createdat` off a raw record yields
+   *  undefined, which type-checks and then crashes at runtime. */
   createdat: string;
   updatedat: string | null;
   fields: {
@@ -105,12 +143,18 @@ export interface Kurse {
 
 export interface Anmeldungen {
   record_id: string;
+  /** The API field. */
+  created_at: string;
+  updated_at: string | null;
+  /** Alias of created_at, filled by the read helpers. The API sends
+   *  snake_case only — reading `createdat` off a raw record yields
+   *  undefined, which type-checks and then crashes at runtime. */
   createdat: string;
   updatedat: string | null;
   fields: {
-    kurstermin?: string; // applookup -> URL zu 'Kurstermine' Record
-    kurs?: string; // applookup -> URL zu 'Kurse' Record
-    teilnehmer?: string; // applookup -> URL zu 'Teilnehmer' Record
+    kurstermin?: RecordUrl; // applookup -> URL zu 'Kurstermine' Record
+    kurs?: RecordUrl; // applookup -> URL zu 'Kurse' Record
+    teilnehmer?: RecordUrl; // applookup -> URL zu 'Teilnehmer' Record
     anmeldedatum?: string; // Format: YYYY-MM-DD oder ISO String
     status?: LookupValue;
     bemerkung?: string;
@@ -129,28 +173,36 @@ export const APP_IDS = {
 
 export const LOOKUP_OPTIONS: Record<string, Record<string, {key: string, label: string}[]>> = {
   'trainer': {
-    trainer_typ: [{ key: "intern", label: "Intern" }, { key: "extern", label: "Extern" }],
+    trainer_typ: [{ key: "intern", get label() { return lookupLabel('trainer', 'trainer_typ', "intern") ?? "Intern"; } }, { key: "extern", get label() { return lookupLabel('trainer', 'trainer_typ', "extern") ?? "Extern"; } }],
   },
   'teilnehmer': {
-    aktiv_status: [{ key: "inaktiv", label: "Inaktiv" }, { key: "aktiv", label: "Aktiv" }],
+    aktiv_status: [{ key: "aktiv", get label() { return lookupLabel('teilnehmer', 'aktiv_status', "aktiv") ?? "Aktiv"; } }, { key: "inaktiv", get label() { return lookupLabel('teilnehmer', 'aktiv_status', "inaktiv") ?? "Inaktiv"; } }],
   },
   'raeume_und_orte': {
-    raum_typ: [{ key: "intern", label: "Intern" }, { key: "extern", label: "Extern" }],
-    status: [{ key: "aktiv", label: "Aktiv" }, { key: "inaktiv", label: "Inaktiv" }],
-    online_raum: [{ key: "ja", label: "Ja" }, { key: "nein", label: "Nein" }],
+    raum_typ: [{ key: "intern", get label() { return lookupLabel('raeume_und_orte', 'raum_typ', "intern") ?? "Intern"; } }, { key: "extern", get label() { return lookupLabel('raeume_und_orte', 'raum_typ', "extern") ?? "Extern"; } }],
+    status: [{ key: "aktiv", get label() { return lookupLabel('raeume_und_orte', 'status', "aktiv") ?? "Aktiv"; } }, { key: "inaktiv", get label() { return lookupLabel('raeume_und_orte', 'status', "inaktiv") ?? "Inaktiv"; } }],
+    online_raum: [{ key: "ja", get label() { return lookupLabel('raeume_und_orte', 'online_raum', "ja") ?? "Ja"; } }, { key: "nein", get label() { return lookupLabel('raeume_und_orte', 'online_raum', "nein") ?? "Nein"; } }],
   },
   'kurstermine': {
-    status: [{ key: "geplant", label: "Geplant" }, { key: "offen", label: "Offen zur Anmeldung" }, { key: "voll", label: "Voll" }, { key: "durchgefuehrt", label: "Durchgeführt" }, { key: "abgesagt", label: "Abgesagt" }],
+    status: [{ key: "geplant", get label() { return lookupLabel('kurstermine', 'status', "geplant") ?? "Geplant"; } }, { key: "offen", get label() { return lookupLabel('kurstermine', 'status', "offen") ?? "Offen zur Anmeldung"; } }, { key: "voll", get label() { return lookupLabel('kurstermine', 'status', "voll") ?? "Voll"; } }, { key: "durchgefuehrt", get label() { return lookupLabel('kurstermine', 'status', "durchgefuehrt") ?? "Durchgeführt"; } }, { key: "abgesagt", get label() { return lookupLabel('kurstermine', 'status', "abgesagt") ?? "Abgesagt"; } }],
   },
   'kurse': {
-    kategorie: [{ key: "fachlich", label: "Fachlich" }, { key: "soft_skills", label: "Soft Skills" }, { key: "it", label: "IT" }, { key: "sonstiges", label: "Sonstiges" }],
-    dauer_einheit: [{ key: "stunden", label: "Stunden" }, { key: "tage", label: "Tage" }],
-    status: [{ key: "geplant", label: "Geplant" }, { key: "aktiv", label: "Aktiv" }, { key: "inaktiv", label: "Inaktiv" }, { key: "archiviert", label: "Archiviert" }],
+    kategorie: [{ key: "fachlich", get label() { return lookupLabel('kurse', 'kategorie', "fachlich") ?? "Fachlich"; } }, { key: "soft_skills", get label() { return lookupLabel('kurse', 'kategorie', "soft_skills") ?? "Soft Skills"; } }, { key: "it", get label() { return lookupLabel('kurse', 'kategorie', "it") ?? "IT"; } }, { key: "sonstiges", get label() { return lookupLabel('kurse', 'kategorie', "sonstiges") ?? "Sonstiges"; } }],
+    dauer_einheit: [{ key: "stunden", get label() { return lookupLabel('kurse', 'dauer_einheit', "stunden") ?? "Stunden"; } }, { key: "tage", get label() { return lookupLabel('kurse', 'dauer_einheit', "tage") ?? "Tage"; } }],
+    status: [{ key: "geplant", get label() { return lookupLabel('kurse', 'status', "geplant") ?? "Geplant"; } }, { key: "aktiv", get label() { return lookupLabel('kurse', 'status', "aktiv") ?? "Aktiv"; } }, { key: "inaktiv", get label() { return lookupLabel('kurse', 'status', "inaktiv") ?? "Inaktiv"; } }, { key: "archiviert", get label() { return lookupLabel('kurse', 'status', "archiviert") ?? "Archiviert"; } }],
   },
   'anmeldungen': {
-    status: [{ key: "vorgemerkt", label: "Vorgemerkt" }, { key: "angemeldet", label: "Angemeldet" }, { key: "warteliste", label: "Warteliste" }, { key: "storniert", label: "Storniert" }, { key: "teilgenommen", label: "Teilgenommen" }, { key: "nicht_erschienen", label: "Nicht erschienen" }],
+    status: [{ key: "vorgemerkt", get label() { return lookupLabel('anmeldungen', 'status', "vorgemerkt") ?? "Vorgemerkt"; } }, { key: "angemeldet", get label() { return lookupLabel('anmeldungen', 'status', "angemeldet") ?? "Angemeldet"; } }, { key: "warteliste", get label() { return lookupLabel('anmeldungen', 'status', "warteliste") ?? "Warteliste"; } }, { key: "storniert", get label() { return lookupLabel('anmeldungen', 'status', "storniert") ?? "Storniert"; } }, { key: "teilgenommen", get label() { return lookupLabel('anmeldungen', 'status', "teilgenommen") ?? "Teilgenommen"; } }, { key: "nicht_erschienen", get label() { return lookupLabel('anmeldungen', 'status', "nicht_erschienen") ?? "Nicht erschienen"; } }],
   },
 };
+
+// Optimistic LookupValue writes: never re-type a label — resolve the schema
+// option instead (its label is a locale-aware getter; falls back to the key).
+// WRONG: status: { key: 'offen', label: 'Offen' }   (frozen in one language)
+// RIGHT: status: lookupOption('<appKey>', 'status', 'offen')
+export function lookupOption(app: string, field: string, key: string): LookupValue {
+  return LOOKUP_OPTIONS[app]?.[field]?.find(o => o.key === key) ?? { key, label: key };
+}
 
 export const FIELD_TYPES: Record<string, Record<string, string>> = {
   'trainer': {

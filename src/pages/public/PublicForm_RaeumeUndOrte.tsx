@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { lookupKey } from '@/lib/formatters';
+import { tx } from '@/i18n';
 
 // Empty PROXY_BASE → relative URLs (dashboard and form-proxy share the domain).
 const PROXY_BASE = '';
@@ -22,7 +23,7 @@ async function submitPublicForm(fields: Record<string, unknown>, captchaToken: s
   });
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(err || 'Submission failed');
+    throw new Error(err || tx('Submission failed'));
   }
   return res.json();
 }
@@ -81,7 +82,7 @@ export default function PublicFormRaeumeUndOrte() {
     e.preventDefault();
     const token = readCaptchaToken();
     if (!token) {
-      setError('Bitte warte auf die Spam-Prüfung und versuche es erneut.');
+      setError(tx('Bitte warte auf die Spam-Prüfung und versuche es erneut.'));
       return;
     }
     setSubmitting(true);
@@ -90,7 +91,7 @@ export default function PublicFormRaeumeUndOrte() {
       await submitPublicForm(cleanFields(fields), token);
       setSubmitted(true);
     } catch (err: any) {
-      setError(err.message || 'Etwas ist schiefgelaufen. Bitte versuche es erneut.');
+      setError(err.message || tx('Etwas ist schiefgelaufen. Bitte versuche es erneut.'));
     } finally {
       setSubmitting(false);
     }
@@ -105,10 +106,10 @@ export default function PublicFormRaeumeUndOrte() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-xl font-bold">Vielen Dank!</h2>
-          <p className="text-muted-foreground">Deine Eingabe wurde erfolgreich übermittelt.</p>
+          <h2 className="text-xl font-bold">{tx('Vielen Dank!')}</h2>
+          <p className="text-muted-foreground">{tx('Deine Eingabe wurde erfolgreich übermittelt.')}</p>
           <Button variant="outline" className="mt-4" onClick={() => { setSubmitted(false); setFields({}); }}>
-            Weitere Eingabe
+            {tx('Weitere Eingabe')}
           </Button>
         </div>
       </div>
@@ -119,12 +120,12 @@ export default function PublicFormRaeumeUndOrte() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-foreground">Räume und Orte — Formular</h1>
+          <h1 className="text-2xl font-bold text-foreground">{tx('Räume und Orte — Formular')}</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5 bg-card rounded-xl border border-border p-6 shadow-md">
           <div className="space-y-2">
-            <Label htmlFor="raumname">Name des Raums/Orts *</Label>
+            <Label htmlFor="raumname">{tx('Name des Raums/Orts *')}</Label>
             <Input
               id="raumname"
               placeholder=""
@@ -134,7 +135,7 @@ export default function PublicFormRaeumeUndOrte() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="strasse">Straße</Label>
+            <Label htmlFor="strasse">{tx('Straße')}</Label>
             <Input
               id="strasse"
               placeholder=""
@@ -143,7 +144,7 @@ export default function PublicFormRaeumeUndOrte() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="hausnummer">Hausnummer</Label>
+            <Label htmlFor="hausnummer">{tx('Hausnummer')}</Label>
             <Input
               id="hausnummer"
               placeholder=""
@@ -152,7 +153,7 @@ export default function PublicFormRaeumeUndOrte() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="plz">PLZ</Label>
+            <Label htmlFor="plz">{tx('PLZ')}</Label>
             <Input
               id="plz"
               placeholder=""
@@ -161,7 +162,7 @@ export default function PublicFormRaeumeUndOrte() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="stadt">Stadt</Label>
+            <Label htmlFor="stadt">{tx('Stadt')}</Label>
             <Input
               id="stadt"
               placeholder=""
@@ -170,7 +171,7 @@ export default function PublicFormRaeumeUndOrte() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="kapazitaet">Maximale Personenzahl</Label>
+            <Label htmlFor="kapazitaet">{tx('Maximale Personenzahl')}</Label>
             <Input
               id="kapazitaet"
               type="number"
@@ -182,7 +183,7 @@ export default function PublicFormRaeumeUndOrte() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="ausstattung">Ausstattung</Label>
+            <Label htmlFor="ausstattung">{tx('Ausstattung')}</Label>
             <Textarea
               id="ausstattung"
               placeholder=""
@@ -192,7 +193,7 @@ export default function PublicFormRaeumeUndOrte() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="raum_typ">Typ *</Label>
+            <Label htmlFor="raum_typ">{tx('Typ *')}</Label>
             <div role="radiogroup" className="flex flex-wrap gap-1.5">
               <button
                 type="button"
@@ -205,7 +206,7 @@ export default function PublicFormRaeumeUndOrte() {
                     : 'bg-background text-foreground border-input hover:bg-accent'
                 }`}
               >
-                Intern
+                {tx('Intern')}
               </button>
               <button
                 type="button"
@@ -218,12 +219,12 @@ export default function PublicFormRaeumeUndOrte() {
                     : 'bg-background text-foreground border-input hover:bg-accent'
                 }`}
               >
-                Extern
+                {tx('Extern')}
               </button>
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="status">Status *</Label>
+            <Label htmlFor="status">{tx('Status *')}</Label>
             <div role="radiogroup" className="flex flex-wrap gap-1.5">
               <button
                 type="button"
@@ -236,7 +237,7 @@ export default function PublicFormRaeumeUndOrte() {
                     : 'bg-background text-foreground border-input hover:bg-accent'
                 }`}
               >
-                Aktiv
+                {tx('Aktiv')}
               </button>
               <button
                 type="button"
@@ -249,12 +250,12 @@ export default function PublicFormRaeumeUndOrte() {
                     : 'bg-background text-foreground border-input hover:bg-accent'
                 }`}
               >
-                Inaktiv
+                {tx('Inaktiv')}
               </button>
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="online_raum">Online-Raum *</Label>
+            <Label htmlFor="online_raum">{tx('Online-Raum *')}</Label>
             <div role="radiogroup" className="flex flex-wrap gap-1.5">
               <button
                 type="button"
@@ -267,7 +268,7 @@ export default function PublicFormRaeumeUndOrte() {
                     : 'bg-background text-foreground border-input hover:bg-accent'
                 }`}
               >
-                Ja
+                {tx('Ja')}
               </button>
               <button
                 type="button"
@@ -280,12 +281,12 @@ export default function PublicFormRaeumeUndOrte() {
                     : 'bg-background text-foreground border-input hover:bg-accent'
                 }`}
               >
-                Nein
+                {tx('Nein')}
               </button>
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="online_link">Online-Link</Label>
+            <Label htmlFor="online_link">{tx('Online-Link')}</Label>
             <Input
               id="online_link"
               value={fields.online_link ?? ''}
@@ -293,7 +294,7 @@ export default function PublicFormRaeumeUndOrte() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="bemerkung">Bemerkung</Label>
+            <Label htmlFor="bemerkung">{tx('Bemerkung')}</Label>
             <Textarea
               id="bemerkung"
               placeholder=""
@@ -317,12 +318,12 @@ export default function PublicFormRaeumeUndOrte() {
           )}
 
           <Button type="submit" className="w-full" disabled={submitting}>
-            {submitting ? 'Wird gesendet...' : 'Absenden'}
+            {submitting ? tx('Wird gesendet...') : tx('Absenden')}
           </Button>
         </form>
 
         <p className="text-xs text-muted-foreground text-center mt-4">
-          Powered by Klar
+          {tx('Powered by Klar')}
         </p>
       </div>
     </div>

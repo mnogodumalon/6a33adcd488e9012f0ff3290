@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { lookupKey } from '@/lib/formatters';
+import { tx } from '@/i18n';
 
 // Empty PROXY_BASE → relative URLs (dashboard and form-proxy share the domain).
 const PROXY_BASE = '';
@@ -22,7 +23,7 @@ async function submitPublicForm(fields: Record<string, unknown>, captchaToken: s
   });
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(err || 'Submission failed');
+    throw new Error(err || tx('Submission failed'));
   }
   return res.json();
 }
@@ -81,7 +82,7 @@ export default function PublicFormKurse() {
     e.preventDefault();
     const token = readCaptchaToken();
     if (!token) {
-      setError('Bitte warte auf die Spam-Prüfung und versuche es erneut.');
+      setError(tx('Bitte warte auf die Spam-Prüfung und versuche es erneut.'));
       return;
     }
     setSubmitting(true);
@@ -90,7 +91,7 @@ export default function PublicFormKurse() {
       await submitPublicForm(cleanFields(fields), token);
       setSubmitted(true);
     } catch (err: any) {
-      setError(err.message || 'Etwas ist schiefgelaufen. Bitte versuche es erneut.');
+      setError(err.message || tx('Etwas ist schiefgelaufen. Bitte versuche es erneut.'));
     } finally {
       setSubmitting(false);
     }
@@ -105,10 +106,10 @@ export default function PublicFormKurse() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-xl font-bold">Vielen Dank!</h2>
-          <p className="text-muted-foreground">Deine Eingabe wurde erfolgreich übermittelt.</p>
+          <h2 className="text-xl font-bold">{tx('Vielen Dank!')}</h2>
+          <p className="text-muted-foreground">{tx('Deine Eingabe wurde erfolgreich übermittelt.')}</p>
           <Button variant="outline" className="mt-4" onClick={() => { setSubmitted(false); setFields({}); }}>
-            Weitere Eingabe
+            {tx('Weitere Eingabe')}
           </Button>
         </div>
       </div>
@@ -119,12 +120,12 @@ export default function PublicFormKurse() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-foreground">Kurse — Formular</h1>
+          <h1 className="text-2xl font-bold text-foreground">{tx('Kurse — Formular')}</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5 bg-card rounded-xl border border-border p-6 shadow-md">
           <div className="space-y-2">
-            <Label htmlFor="kurstitel">Kurstitel *</Label>
+            <Label htmlFor="kurstitel">{tx('Kurstitel *')}</Label>
             <Input
               id="kurstitel"
               placeholder=""
@@ -134,7 +135,7 @@ export default function PublicFormKurse() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="kurzbeschreibung">Kurzbeschreibung *</Label>
+            <Label htmlFor="kurzbeschreibung">{tx('Kurzbeschreibung *')}</Label>
             <Textarea
               id="kurzbeschreibung"
               placeholder=""
@@ -144,7 +145,7 @@ export default function PublicFormKurse() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="detaillierte_beschreibung">Detaillierte Beschreibung</Label>
+            <Label htmlFor="detaillierte_beschreibung">{tx('Detaillierte Beschreibung')}</Label>
             <Textarea
               id="detaillierte_beschreibung"
               placeholder=""
@@ -154,7 +155,7 @@ export default function PublicFormKurse() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="kategorie">Kategorie *</Label>
+            <Label htmlFor="kategorie">{tx('Kategorie *')}</Label>
             <div role="radiogroup" className="flex flex-wrap gap-1.5">
               <button
                 type="button"
@@ -167,7 +168,7 @@ export default function PublicFormKurse() {
                     : 'bg-background text-foreground border-input hover:bg-accent'
                 }`}
               >
-                Fachlich
+                {tx('Fachlich')}
               </button>
               <button
                 type="button"
@@ -180,7 +181,7 @@ export default function PublicFormKurse() {
                     : 'bg-background text-foreground border-input hover:bg-accent'
                 }`}
               >
-                Soft Skills
+                {tx('Soft Skills')}
               </button>
               <button
                 type="button"
@@ -193,7 +194,7 @@ export default function PublicFormKurse() {
                     : 'bg-background text-foreground border-input hover:bg-accent'
                 }`}
               >
-                IT
+                {tx('IT')}
               </button>
               <button
                 type="button"
@@ -206,12 +207,12 @@ export default function PublicFormKurse() {
                     : 'bg-background text-foreground border-input hover:bg-accent'
                 }`}
               >
-                Sonstiges
+                {tx('Sonstiges')}
               </button>
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="dauer_anzahl">Dauer (Anzahl) *</Label>
+            <Label htmlFor="dauer_anzahl">{tx('Dauer (Anzahl) *')}</Label>
             <Input
               id="dauer_anzahl"
               type="number"
@@ -223,7 +224,7 @@ export default function PublicFormKurse() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="dauer_einheit">Dauer (Einheit) *</Label>
+            <Label htmlFor="dauer_einheit">{tx('Dauer (Einheit) *')}</Label>
             <div role="radiogroup" className="flex flex-wrap gap-1.5">
               <button
                 type="button"
@@ -236,7 +237,7 @@ export default function PublicFormKurse() {
                     : 'bg-background text-foreground border-input hover:bg-accent'
                 }`}
               >
-                Stunden
+                {tx('Stunden')}
               </button>
               <button
                 type="button"
@@ -249,12 +250,12 @@ export default function PublicFormKurse() {
                     : 'bg-background text-foreground border-input hover:bg-accent'
                 }`}
               >
-                Tage
+                {tx('Tage')}
               </button>
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="zielgruppe">Zielgruppe</Label>
+            <Label htmlFor="zielgruppe">{tx('Zielgruppe')}</Label>
             <Input
               id="zielgruppe"
               placeholder=""
@@ -263,7 +264,7 @@ export default function PublicFormKurse() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="max_teilnehmer">Maximale Teilnehmerzahl *</Label>
+            <Label htmlFor="max_teilnehmer">{tx('Maximale Teilnehmerzahl *')}</Label>
             <Input
               id="max_teilnehmer"
               type="number"
@@ -275,7 +276,7 @@ export default function PublicFormKurse() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="status">Status *</Label>
+            <Label htmlFor="status">{tx('Status *')}</Label>
             <div role="radiogroup" className="flex flex-wrap gap-1.5">
               <button
                 type="button"
@@ -288,7 +289,7 @@ export default function PublicFormKurse() {
                     : 'bg-background text-foreground border-input hover:bg-accent'
                 }`}
               >
-                Geplant
+                {tx('Geplant')}
               </button>
               <button
                 type="button"
@@ -301,7 +302,7 @@ export default function PublicFormKurse() {
                     : 'bg-background text-foreground border-input hover:bg-accent'
                 }`}
               >
-                Aktiv
+                {tx('Aktiv')}
               </button>
               <button
                 type="button"
@@ -314,7 +315,7 @@ export default function PublicFormKurse() {
                     : 'bg-background text-foreground border-input hover:bg-accent'
                 }`}
               >
-                Inaktiv
+                {tx('Inaktiv')}
               </button>
               <button
                 type="button"
@@ -327,7 +328,7 @@ export default function PublicFormKurse() {
                     : 'bg-background text-foreground border-input hover:bg-accent'
                 }`}
               >
-                Archiviert
+                {tx('Archiviert')}
               </button>
             </div>
           </div>
@@ -346,12 +347,12 @@ export default function PublicFormKurse() {
           )}
 
           <Button type="submit" className="w-full" disabled={submitting}>
-            {submitting ? 'Wird gesendet...' : 'Absenden'}
+            {submitting ? tx('Wird gesendet...') : tx('Absenden')}
           </Button>
         </form>
 
         <p className="text-xs text-muted-foreground text-center mt-4">
-          Powered by Klar
+          {tx('Powered by Klar')}
         </p>
       </div>
     </div>

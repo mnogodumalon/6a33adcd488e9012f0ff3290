@@ -4,6 +4,8 @@ import { extractRecordId } from '@/services/livingAppsService';
 import {
   RecordSection, RecordField, RecordRelation, RecordAttachments,
 } from '@/components/widgets/RecordView';
+import { t, appLabel, fieldLabel } from '@/i18n';
+import { usePermissions } from '@/lib/permissions';
 
 export interface AnmeldungenDetailsProps {
   /** Der Record — enriched oder roh; alle Felder werden hier gerendert. */
@@ -31,40 +33,42 @@ export function AnmeldungenDetails({
   teilnehmerList,
   onOpenTeilnehmer,
 }: AnmeldungenDetailsProps) {
+  // attachments are a write to this record — read-only without the platform right
+  const perms = usePermissions();
   const kursterminTarget = kurstermineList.find(r => r.record_id === extractRecordId(record.fields.kurstermin));
   const kursTarget = kurseList.find(r => r.record_id === extractRecordId(record.fields.kurs));
   const teilnehmerTarget = teilnehmerList.find(r => r.record_id === extractRecordId(record.fields.teilnehmer));
   return (
     <>
-      <RecordSection title="Details" cols={2}>
-        <RecordField label="Anmeldedatum" value={record.fields.anmeldedatum} format="datetime" />
-        <RecordField label="Status" value={record.fields.status} format="pill" />
-        <RecordField label="Bemerkung" value={record.fields.bemerkung} format="longtext" className="md:col-span-2" />
+      <RecordSection title={t('details')} cols={2}>
+        <RecordField label={fieldLabel('anmeldungen', 'anmeldedatum')} value={record.fields.anmeldedatum} format="datetime" />
+        <RecordField label={fieldLabel('anmeldungen', 'status')} value={record.fields.status} format="pill" />
+        <RecordField label={fieldLabel('anmeldungen', 'bemerkung')} value={record.fields.bemerkung} format="longtext" className="md:col-span-2" />
       </RecordSection>
 
       {/* N:1 — verknüpfte Records: IMMER klickbar, nie eine Text-Sackgasse. */}
-      <RecordSection title="Verknüpft" cols={2}>
+      <RecordSection title={t('relations')} cols={2}>
         <RecordRelation
-          label="Kurstermin"
+          label={fieldLabel('anmeldungen', 'kurstermin')}
           name={kursterminTarget?.fields.ort ?? '—'}
           meta={undefined}
           onClick={kursterminTarget && onOpenKurstermine ? () => onOpenKurstermine!(kursterminTarget!) : undefined}
         />
         <RecordRelation
-          label="Kurs"
+          label={fieldLabel('anmeldungen', 'kurs')}
           name={kursTarget?.fields.kurstitel ?? '—'}
           meta={[kursTarget?.fields.zielgruppe].filter(Boolean).join(' · ') || undefined}
           onClick={kursTarget && onOpenKurse ? () => onOpenKurse!(kursTarget!) : undefined}
         />
         <RecordRelation
-          label="Teilnehmer"
+          label={fieldLabel('anmeldungen', 'teilnehmer')}
           name={teilnehmerTarget?.fields.vorname ?? '—'}
           meta={[teilnehmerTarget?.fields.email].filter(Boolean).join(' · ') || undefined}
           onClick={teilnehmerTarget && onOpenTeilnehmer ? () => onOpenTeilnehmer!(teilnehmerTarget!) : undefined}
         />
       </RecordSection>
 
-      <RecordAttachments appId={APP_IDS.ANMELDUNGEN} recordId={record.record_id} />
+      <RecordAttachments appId={APP_IDS.ANMELDUNGEN} recordId={record.record_id} readOnly={!perms.canWrite('anmeldungen')} />
     </>
   );
 }
